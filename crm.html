@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <!-- Enlace a Bootstrap CSS desde CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #1c156d;
+            height: 100vh;
+        }
+
+        .dashboard-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: #2a1eb4;
+            padding: 20px;
+            color: white;
+            height: 100%;
+        }
+
+        .sidebar h2 {
+            color: white;
+            text-align: center;
+        }
+
+        .sidebar ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .sidebar ul li {
+            margin: 20px 0;
+        }
+
+        .sidebar ul li button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+
+        .sidebar ul li button:hover {
+            background-color: #45a049;
+        }
+
+        .content {
+            flex-grow: 1;
+            padding: 20px;
+            background-color: white;
+            overflow: auto;
+        }
+
+        .content h3 {
+            color: #2a1eb4;
+        }
+
+        .icon-container img {
+            width: 100px;
+            margin: 0 auto;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <!-- Barra lateral -->
+        <div class="sidebar">
+            <div class="icon-container">
+                <img src="assets/upper_icono.png" alt="Icono Upper">
+            </div>
+            <h2>Panel de Control</h2>
+            <ul>
+                <li><button onclick="showContent('dashboard')">Dashboard</button></li>
+                <li><button onclick="showContent('perfil')">Perfil</button></li>
+                <li><button onclick="showContent('inventario')">Inventario</button></li>
+                <li><button onclick="showContent('configuracion')">Configuración</button></li>
+            </ul>
+        </div>
+
+        <!-- Contenido principal -->
+        <div class="content" id="main-content">
+            <h3>Bienvenido al Dashboard</h3>
+            <p>Seleccione una opción del menú para ver su contenido.</p>
+        </div>
+    </div>
+
+    <!-- Enlace a Bootstrap JS y dependencias desde CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous">
+        </script>
+
+    <script>
+        function showContent(tab) {
+            let content = document.getElementById('main-content');
+            switch (tab) {
+                case 'dashboard':
+                    content.innerHTML = '<h3>Dashboard</h3><p>Bienvenido al área del Dashboard, aquí puedes ver información general.</p>';
+                    break;
+                case 'perfil':
+                    content.innerHTML = '<h3>Perfil</h3><p>Aquí puedes actualizar la información de tu perfil.</p>';
+                    break;
+                case 'inventario':
+                    content.innerHTML = '<h3>Inventario</h3><p>Consulta y administra el inventario de productos y lotes.</p>';
+                    break;
+                case 'configuracion':
+                    content.innerHTML = '<h3>Configuración</h3><p>Ajusta las configuraciones del sistema según tus preferencias.</p>';
+                    break;
+                default:
+                    content.innerHTML = '<h3>Bienvenido al Dashboard</h3><p>Seleccione una opción del menú para ver su contenido.</p>';
+            }
+        }
+    </script>
+</body>
+
+</html>
