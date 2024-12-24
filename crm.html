@@ -48,14 +48,13 @@
             width: 100%;
             padding: 10px;
             border: none;
-            border-radius: 4px;
-            background-color: #4CAF50;
+            background-color: #3425d972;
             color: white;
             cursor: pointer;
         }
 
         .sidebar ul li button:hover {
-            background-color: #45a049;
+            background-color: #4c63af;
         }
 
         .content {
@@ -86,10 +85,11 @@
             </div>
             <h2>Panel de Control</h2>
             <ul>
-                <li><button onclick="showContent('dashboard')">Dashboard</button></li>
+                <li><button onclick="showContent('almacenes')">Almacenes</button></li>
                 <li><button onclick="showContent('perfil')">Perfil</button></li>
                 <li><button onclick="showContent('inventario')">Inventario</button></li>
                 <li><button onclick="showContent('configuracion')">Configuración</button></li>
+                <li><button></button></li>
             </ul>
         </div>
 
@@ -97,6 +97,8 @@
         <div class="content" id="main-content">
             <h3>Bienvenido al Dashboard</h3>
             <p>Seleccione una opción del menú para ver su contenido.</p>
+
+
         </div>
     </div>
 
@@ -109,8 +111,8 @@
         function showContent(tab) {
             let content = document.getElementById('main-content');
             switch (tab) {
-                case 'dashboard':
-                    content.innerHTML = '<h3>Dashboard</h3><p>Bienvenido al área del Dashboard, aquí puedes ver información general.</p>';
+                case 'almacenes':
+                    content.innerHTML = '<h3>Almacenes</h3><button class="entradas_almacen" onclick="addAlmacen()"><img src="assets/entradas_almacen.png" alt="Agregar Entrada">Entrada</button>';
                     break;
                 case 'perfil':
                     content.innerHTML = '<h3>Perfil</h3><p>Aquí puedes actualizar la información de tu perfil.</p>';
@@ -125,6 +127,8 @@
                     content.innerHTML = '<h3>Bienvenido al Dashboard</h3><p>Seleccione una opción del menú para ver su contenido.</p>';
             }
         }
+
+
     </script>
 </body>
 

@@ -13,27 +13,16 @@ body {
 }
 
 .login-container {
-    border: 1px solid #cccccc;
     padding: 20px;
     border-radius: 5px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     width: 300px;
-    background-color: #2a1eb4;
     margin-top: 20px;
 }
 
 h2 {
     color: white;
     margin-bottom: 20px;
-}
-
-input[type="text"],
-input[type="password"] {
-    width: 100%;
-    padding: 10px;
-    margin: 10px 0;
-    border: 1px solid #ccc;
-    border-radius: 4px;
 }
 
 input[type="submit"] {
@@ -46,6 +35,15 @@ input[type="submit"] {
     cursor: pointer;
 }
 
+button[type="submit"] {
+    border-radius: 1rem;
+    width: 9rem;
+}
+
+button[type="submit"]:active {
+    color: #1c156d;
+}
+
 input[type="submit"]:hover {
     background-color: #45a049;
 }
@@ -53,4 +51,25 @@ input[type="submit"]:hover {
 .icon-container img {
     width: 100px;
     /* Ajusta el tamaño de la imagen aquí */
+}
+
+.text-welcome h1 {
+    margin-top: 20px;
+    font-size: px;
+    color: white;
+    text-align: center;
+    font-weight: 20px;
+}
+
+.text-welcome h3 {
+    margin-top: 20px;
+    font-size: 15px;
+    color: white;
+    text-align: center;
+    font-weight: 20px;
+}
+
+.login-container input {
+    margin-bottom: 5px;
+    border-radius: 1rem
 }
