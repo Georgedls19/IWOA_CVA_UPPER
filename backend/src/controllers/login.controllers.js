@@ -27,56 +27,53 @@ const registrarEntrada = async (req, res) => {
         // Extraer todos los datos enviados en el cuerpo de la solicitud
         const {
             codigo_lote,
-            fecha_recepcion,
-            ubicacion_id,
+            ubicacion,
             estado,
-            fabricante_id,
-            numero_serie,
+            no_fabricante,
+            no_serie,
             modelo_sku,
             proyecto,
-            numero_proyecto,
             cliente,
-            cantidad,
-            area_id,
-            cliente_id,
+            area,
+            no_proyecto,
+            fecha_recepcion,
+            cantidad
         } = req.body;
 
         // Validación básica para los campos principales
-        if (!codigo_lote || !fecha_recepcion || !ubicacion_id || !estado || !cantidad) {
+        if (!codigo_lote || !estado || !cantidad) {
             return res.status(400).json({ message: 'Faltan datos obligatorios' });
         }
 
         // Llamar a la función SQL con todos los datos
         const result = await pool.query(
             `INSERT INTO lotes (
-                codigo_lote,
-                fecha_recepcion,
-                ubicacion_id,
+                codigo_lote,                
+                ubicacion,
                 estado,
                 no_fabricante,
                 no_serie,
                 modelo_sku,
                 proyecto,
-                no_proyecto,
                 cliente,
-                cantidad,
-                area_id,
-                cliente_id
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
+                area,
+                no_proyecto,            
+                fecha_recepcion,
+                cantidad
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
             [
                 codigo_lote,
-                fecha_recepcion,
-                ubicacion_id,
+                ubicacion,
                 estado,
-                fabricante_id,
-                numero_serie,
+                no_fabricante,
+                no_serie,
                 modelo_sku,
                 proyecto,
-                numero_proyecto,
                 cliente,
-                cantidad,
-                area_id,
-                cliente_id,
+                area,
+                no_proyecto,
+                fecha_recepcion,
+                cantidad
             ]
         );
 
@@ -91,24 +88,58 @@ const registrarEntrada = async (req, res) => {
     }
 };
 
-
 // Registrar una nueva salida
 const registrarSalida = async (req, res) => {
     try {
         const { codigo_lote, cantidad, cliente_id, fecha, observaciones } = req.body;
 
+        // Validar que todos los datos requeridos estén presentes
         if (!codigo_lote || !cantidad || !cliente_id || !fecha) {
             return res.status(400).json({ message: 'Faltan datos obligatorios' });
         }
 
-        const result = await pool.query(
-            `SELECT registrar_salida($1, $2, $3, $4, $5)`,
-            [codigo_lote, cantidad, cliente_id, fecha, observaciones || null]
+        // Verificar si el lote existe y tiene suficiente cantidad
+        const loteResult = await pool.query(
+            'SELECT * FROM lotes WHERE codigo_lote = $1',
+            [codigo_lote]
         );
 
+        if (loteResult.rows.length === 0) {
+            return res.status(404).json({ message: 'Lote no encontrado' });
+        }
+
+        const lote = loteResult.rows[0];
+
+        if (lote.cantidad < cantidad) {
+            return res.status(400).json({ message: 'Cantidad insuficiente en el lote' });
+        }
+
+        // Registrar la salida en la tabla de movimientos
+        const movimientoResult = await pool.query(
+            `INSERT INTO movimientos (
+                lote_id, fecha_movimiento, tipo_movimiento, descripcion, cantidad, responsable
+            ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+            [
+                lote.id, // Se usa el ID del lote
+                fecha,
+                'Salida',
+                observaciones || 'Registro de salida',
+                cantidad,
+                cliente_id // Puede ser usado como responsable o un campo específico
+            ]
+        );
+
+        // Actualizar la cantidad en la tabla de lotes
+        const actualizarLoteResult = await pool.query(
+            'UPDATE lotes SET cantidad = cantidad - $1 WHERE id = $2 RETURNING *',
+            [cantidad, lote.id]
+        );
+
+        // Responder con el resultado
         res.status(201).json({
             message: 'Salida registrada con éxito',
-            result: result.rows[0],
+            movimiento: movimientoResult.rows[0],
+            loteActualizado: actualizarLoteResult.rows[0],
         });
     } catch (error) {
         console.error("Error al registrar salida:", error.message);
@@ -147,11 +178,81 @@ const validarLote = async (req, res) => {
         if (result.rows.length === 0) {
             return res.status(404).json({ message: "Lote no encontrado" });
         }
-        res.json(result.rows[0]);
+        res.json(result.rows[0]); //Aqui se devuelve el lote
     } catch (error) {
         console.error("Error al buscar el lote:", error.message);
         res.status(500).json({ message: "Error al buscar el lote" });
     }
+};
+
+const getAreas = async (req, res) => {
+    //en esta funcion se obtendran todos los nombre de las areas
+    try {
+        //consulta que obtendra las columnas de los nombres
+        const result = await pool.query(
+            'SELECT * FROM areas'
+        );
+        //Aqui se muestran todos los nombres de las areas
+        res.json(result.rows);
+
+    } catch (error) {
+        console.error("Error al buscar las areas:", error.message);
+        res.status(500).json({ message: "Error al buscar las areas" });
+    }
+};
+
+const getClientes = async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT * FROM clientes'
+        );
+        res.json(result.rows);
+
+    } catch (error) {
+        console.error("Error al buscar los clientes:", error.message);
+        res.status(500).json({ message: "Error al buscar los clientes" });
+    }
+};
+
+const entradaMovimiento = async (req, res) => {
+    try {
+        const { lote_id, fecha_movimiento, tipo_movimiento, descripcion, cantidad, responsable } = req.body;
+
+        if (!lote_id || !cantidad || !responsable || !tipo_movimiento || !fecha_movimiento) {
+            return res.status(400).json({ message: 'Faltan datos obligatorios' });
+        }
+
+        const result = await pool.query(
+            `INSERT INTO movimientos (
+                lote_id,                
+                fecha_movimiento,
+                tipo_movimiento,
+                descripcion,
+                cantidad,
+                responsable
+            ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+            [
+                lote_id,
+                fecha_movimiento,
+                tipo_movimiento,
+                descripcion,
+                cantidad,
+                responsable
+            ]
+
+
+        );
+
+        res.status(201).json({
+            message: 'Entrada movimiento registrada con a',
+            result: result.rows[0],
+        });
+    } catch (error) {
+        console.error("Error al registrar entrada movimiento:", error.message);
+        res.status(500).json({ message: 'Error en el servidor al registrar la entrada movimiento' });
+    }
+
+
 };
 
 module.exports = {
@@ -160,4 +261,8 @@ module.exports = {
     registrarSalida,
     registrarTraslado,
     validarLote,
+    getAreas,
+    getClientes,
+    entradaMovimiento,
+
 };

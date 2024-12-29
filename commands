@@ -1,9 +1,16 @@
 npm run dev--> Ejecutar archivos.
 npm start--> Ejecutar archivos.
-npm i cors--> Comando para usar cors.
-npm i dotenv--> Comando para usar .env y crear variables de entorno.
-npm install pg
+npm i cors--> Comando para usar cors.(backend)
+npm i dotenv--> Comando para usar .env y crear variables de entorno.()
+npm install pg -> Ejecutar en archivo "backend"
 npm install morgan
 Run `npm audit` for details.
 npm i create-react-app en (en archivo "client")-->para crear un proyecto react
 npm i react-router-dom--> para crear rutas en react(Asegurarse de que la ruta sea la misma que en el backend)
+
+
+Ejecutar:
+npm install pg -> Ejecutar en archivo "backend"
+npm install morgan -> Ejecutar en archivo "backend"
+npm i cors--> Comando para usar cors -> backend
+npm i dotenv--> Comando para usar .env y crear variables de entorno. -> backend
