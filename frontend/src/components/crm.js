@@ -1,12 +1,11 @@
 import React, { useState } from 'react'; // Importamos React
-import UpperIcon from "../assets/upper_icono.svg"; // Importamos la imagen de Upper
 import InventoryIcon from '@mui/icons-material/Inventory';
 import StorageIcon from '@mui/icons-material/Storage';
 import SettingsIcon from '@mui/icons-material/Settings';
 import PersonIcon from '@mui/icons-material/Person';
 import ListItemIcon from '@mui/material/ListItemIcon';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer, toast } from 'react-toastify';//Este componente se usa para mostrar mensajes de error y de éxito
+import 'react-toastify/dist/ReactToastify.css';//Este componente se usa para mostrar mensajes de error y de éxito
 // import { AuthenticationContext, SessionContext } from '@toolpad/core/AppProvider';
 // import { Account } from '@toolpad/core/Account';
 //componentes DatePicker 
@@ -25,14 +24,13 @@ import {
     ListItem,
     ListItemButton,
     ListItemText,
-    CssBaseline,
+    CssBaseline,//Este componente se usa para aplicar estilos a los componentes de la aplicación
     Grid,
     Card,
     CardContent,
     Button,
     TextField,
     IconButton,
-    Icon,
     Table,
     TableBody,
     TableCell,
@@ -46,27 +44,28 @@ import {
 } from '@mui/material'; // Importamos Material UI para el diseño
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
+import { set } from 'date-fns';
+//Exportacion de paginas
+import renderAlmacenContent from '../pages/almacen';
+import DashboardCards from '../pages/dashboard';
+
 
 const Dashboard = () => {
+    const [cards, setCards] = useState([
+        { id: 1, title: 'Promedio de Entradas', content: 'Cargando...' },
+        { id: 2, title: 'Promedio de Salidas', content: '78%' }, // Puedes agregar lógica para esta tarjeta
+        { id: 3, title: 'Actualizaciones Recientes', content: '3 nuevas actualizaciones' },
+    ]); // Lista inicial de cuadros en el dashboard
+    //Los useState se utilizan para crear variables que se pueden manipular dentro de la aplicación, esot no se almacena en el estado global
     const [drawerOpen, setDrawerOpen] = useState(true); // Controla el estado del menú lateral
     const [selectedTab, setSelectedTab] = useState('welcome'); // Maneja las secciones del menú
     const [almacenView, setAlmacenView] = useState(null); // Maneja vistas dentro de Almacenes
-    const [cards, setCards] = useState([
-        { id: 1, title: 'Promedio de Entradas', content: '85%' },
-        { id: 2, title: 'Promedio de Salidas', content: '78%' },
-        { id: 3, title: 'Actualizaciones Recientes', content: '3 nuevas actualizaciones' },
-    ]); // Lista inicial de cuadros en el dashboard
     const [ubicaciones, setUbicaciones] = useState([]); // Opciones de ubicaciones
     const [areas, setAreas] = useState([]); // Opciones de áreas
     const [clientes, setClientes] = useState([]); // Opciones de clientes
     const [inventoryData, setInventoryData] = useState([]); // Datos del inventario
     const [searchQuery, setSearchQuery] = useState(""); // Consulta de búsqueda
-    const showtoast = () => {
-        toast.success('Hola', {
-            position: "top-right",
-            autoClose: 3000,
-        });
-    };
+
     //Funciones     
     useEffect(() => {//Este useEffect se encarga de obtener las opciones de ubicaciones, áreas y clientes
         const fetchData = async () => {
@@ -97,9 +96,62 @@ const Dashboard = () => {
                 console.error("Error al cargar el inventario:", error);
             }
         };
-
         fetchInventory();
+        const fetchPromedioEntradas = async () => {
+            try {
+                const response = await fetch('http://localhost:4000/promedio-entradas'); // Endpoint de promedio
+                if (!response.ok) {
+                    throw new Error('Error al obtener el promedio de entradas');
+                }
+                const data = await response.json();
+
+                // Actualiza el contenido de la tarjeta del promedio de entradas
+                setCards((prevCards) =>
+                    prevCards.map((card) =>
+                        card.id === 1 // Asegúrate de usar el ID correcto
+                            ? { ...card, content: `${data.promedio} unidades (Promedio)` }
+                            : card
+                    )
+                );
+            } catch (error) {
+                console.error('Error al obtener el promedio de entradas:', error);
+                // Actualiza la tarjeta con un mensaje de error
+                setCards((prevCards) =>
+                    prevCards.map((card) =>
+                        card.id === 1
+                            ? { ...card, content: 'Error al cargar el promedio' }
+                            : card
+                    )
+                );
+            }
+        };
+        fetchPromedioEntradas();
+        const fetchPromedioSalidas = async () => {
+            try {
+                const response = await fetch('http://localhost:4000/promedio-salidas');
+                const data = await response.json();
+                // Actualiza el contenido de la tarjeta del promedio de salidas
+                setCards((prevCards) =>
+                    prevCards.map((card) =>
+                        card.id === 2
+                            ? { ...card, content: `${data.promedio} unidades (Promedio)` }
+                            : card
+                    )
+                );
+            } catch (error) {
+                // Actualiza la tarjeta con un mensaje de error
+                setCards((prevCards) =>
+                    prevCards.map((card) =>
+                        card.id === 2
+                            ? { ...card, content: 'Error al cargar el promedio' }
+                            : card
+                    )
+                );
+            }
+        };
+        fetchPromedioSalidas();
     }, []);
+
     // Estado para el formulario dinámico
     const [entradaData, setEntradaData] = useState({ //aqui se guarda el estado del formulario dinámico
         codigo_lote: "",
@@ -168,7 +220,7 @@ const Dashboard = () => {
     };
     const handleSalidaInputChange = async (e) => {
         const { name, value } = e.target;
-
+        <ToastContainer />
         setSalidaData((prevState) => ({
             ...prevState,
             [name]: value,
@@ -193,9 +245,20 @@ const Dashboard = () => {
                         ...prevState,
                         Cliente: "", // Limpiar el campo Cliente si no se encuentra información
                     }));
+                    toast.error('No se encontró información para el código de lote.');
                 }
             } catch (error) {
-                console.error("Error al obtener datos del lote:", error);
+                toast.error(`${error.message}`,
+                    {
+                        position: "top-right",
+                        autoClose: 3000,
+                        hideProgressBar: false,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                        progress: undefined,
+                    }
+                );
             }
         }
     };
@@ -268,10 +331,14 @@ const Dashboard = () => {
             console.log(`Se borró la celda ${name}`);
         }
     };
+
+
     const handleFormSubmit = async (e) => {//Esta función se encarga de enviar los datos al servidor en la seccion de entradas  
         e.preventDefault();
 
         try {
+
+            <ToastContainer /> // Este componente se usa para mostrar mensajes de error y de éxito, por predeterminado muestra un mensaje de error, para eliminar el mensaje de error se debe cambiar el estado de Error a false
             // Registrar el lote en la tabla 'lotes'
             const loteResponse = await fetch('http://localhost:4000/almacen/registro-lote', {
                 method: 'POST',
@@ -281,6 +348,7 @@ const Dashboard = () => {
 
             if (!loteResponse.ok) {
                 throw new Error('Error al registrar el lote');
+
             }
 
             const loteData = await loteResponse.json(); // Suponiendo que devuelve el `id` del lote registrado
@@ -306,14 +374,7 @@ const Dashboard = () => {
             }
 
             const movimientoResult = await movimientoResponse.json();
-
-            toast.success(`Entrada registrada con éxito (Lote ID: ${loteData.id}, Movimiento ID: ${movimientoResult.id})`,
-                {
-                    position: "top-right",
-                    autoClose: 3000,
-                }
-            );
-
+            console.log(`Entrada registrada con Exito (Lote ID: ${loteData.id}, Movimiento ID: ${movimientoResult.id})`);
             // Resetea el formulario después del envío
             setEntradaData({
                 codigo_lote: "",
@@ -329,11 +390,17 @@ const Dashboard = () => {
                 fecha_recepcion: "",
                 cantidad: "",
             });
-        } catch (error) {
-            toast.error('Error:', error,
+
+            toast.success('Datos cargados correctamente',
                 {
                     position: "top-right",
-                    autoClose: 5000,
+                    autoClose: 3000,
+                });
+        } catch (error) {
+            toast.error(`${error.message}`,
+                {
+                    position: "top-right",
+                    autoClose: 3000,
                     hideProgressBar: false,
                     closeOnClick: true,
                     pauseOnHover: true,
@@ -341,6 +408,7 @@ const Dashboard = () => {
                     progress: undefined,
                 }
             );
+
         }
     };
     const handleTrasladoInputChange = async (e) => {
@@ -352,28 +420,53 @@ const Dashboard = () => {
         }));
 
         // Si se está escribiendo en el campo "codigo_lote"
-        if (name === "codigo_lote" && value) {
-            try {
-                const response = await fetch(`http://localhost:4000/lotes?codigo_lote=${value}`);
-                if (response.ok) {
-                    const loteData = await response.json();
+        if (name === "codigo_lote" && value) { //value es el valor del campo codigo_lote
+            //Si el campo esta vacio se limpia el campo ubicacion de origen, y si se ecuentra el campo se mostrara el campo ubicacion de destino, pero si se vuelve a borrar el campo en codigo_lote se limpia el campo ubicacion de destino nuevamente
+            if (value === "") {
+                setTrasladoData((prevState) => ({
+                    ...prevState,
+                    ubicacion_origen: " ",
+                }));
+            } else {
+                try {
+                    const response = await fetch(`http://localhost:4000/lotes?codigo_lote=${value}`);
+                    const reponseEmpty = await fetch(`http://localhost:4000/lotes?codigo_lote=""`);
+                    if (response.ok) {
+                        const loteData = await response.json(); //Aqui se obtiene el lote
 
-                    // Actualizar el campo "ubicacion_origen" con la ubicación del lote
-                    setTrasladoData((prevState) => ({
-                        ...prevState,
-                        ubicacion_origen: loteData.ubicacion || "",
-                    }));
-                    console.log(`Ubicación de origen: ${loteData.ubicacion}`);
-                } else {
-                    console.warn("No se encontró información para el código de lote.");
+                        setTrasladoData((prevState) => ({//Aqui se actualiza el campo ubicacion de origen
+                            ...prevState,//Aqui se actualiza el campo ubicacion de origen
+                            ubicacion_origen: loteData.ubicacion || " ",// En este caso se pone un espacio en blanco para que no se muestre ninguna ubicación en caso de que no exista\
+                        }));
+                        console.log(`Ubicación de origen: ${loteData.ubicacion}`);
+                    } else if (reponseEmpty.ok) {//Si el lote esta vacio, se limpia el campo de ubicación de origen
+                        setTrasladoData((prevState) => ({
+                            ...prevState,
+                            ubicacion_origen: " ",
+                        }));
+                    } else {
+                        console.warn("No se encontró información para el código de lote.");
+                        setTrasladoData((prevState) => ({
+                            ...prevState,
+                            ubicacion_origen: "", // Limpiar el campo si no se encuentra información
+                        }));
+                    }
+
+                } catch (error) {
+                    console.error("Error al obtener datos del lote:", error);
                     setTrasladoData((prevState) => ({
                         ...prevState,
                         ubicacion_origen: "", // Limpiar el campo si no se encuentra información
+                        ubicacion_destino: "",
+                        cantidad: "",
+                        area: "",
+                        observaciones: "",
                     }));
+
+                    toast.error('No se encontró información para el código de lote.');
                 }
-            } catch (error) {
-                console.error("Error al obtener datos del lote:", error);
             }
+
         }
     };
     const handleTrasladoFormSubmit = async (e) => {
@@ -404,6 +497,7 @@ const Dashboard = () => {
         }
     };
     const handleTabChange = (tab) => { //Función que cambia el estado del tab
+        toast.info(tab);
         setSelectedTab(tab);
         setAlmacenView(null);
     };
@@ -462,431 +556,6 @@ const Dashboard = () => {
             />
         );
     };
-    //Renderizaciones de las secciones 
-    const renderDashboardCards = () => ( //Se renderiza el contenido del tab 'Dashboard'
-        <Grid container spacing={3} justifyContent="center">
-            {cards.map((card) => (
-                <Grid item xs={12} sm={6} md={4} key={card.id}>{/*xs:es el tamaño mínimo, sm:es el tamaño medio, md:es el tamaño máximo*/}
-                    <Card
-                        sx={{
-                            maxWidth: 350, // Ancho fijo o proporcional para todas las tarjetas
-                            width: '100%', // Asegura que ocupen su espacio dentro del grid
-                            minHeight: 150, // Define una altura mínima
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            textAlign: 'center',
-                        }}
-                    >
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom>
-                                {card.title}
-                            </Typography>
-                            <Typography variant="body1">{card.content}</Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-            ))}
-        </Grid>
-    );
-    const renderAlmacenContent = () => { //Se renderiza el contenido del tab 'Almacen'  
-        if (almacenView === 'entradas') {
-            return (
-                <Box
-                    sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-start',
-                        justifyContent: 'flex-start',
-                        marginTop: '100px',
-                        height: '75%',
-                        width: '25%',
-                    }}
-                >
-                    <Typography variant="h4" color="primary" gutterBottom>
-                        Entradas
-                    </Typography>
-                    <Typography variant="body1" gutterBottom>
-                        Registrar nueva entrada de lote de tarimas.
-                    </Typography>
-                    <form onSubmit={handleFormSubmit}>
-                        <Grid container spacing={2} justifyContent="center">
-                            {Object.keys(entradaData).map((field, index) => (
-                                <Grid item xs={12} sm={8} md={6} lg={4} key={index}>
-                                    {field === 'fecha_recepcion' ? (
-                                        <LocalizationProvider dateAdapter={AdapterDateFns} locale={esLocale}>
-                                            <DatePicker
-                                                label="Fecha de Recepción"
-                                                value={entradaData.fecha_recepcion}
-                                                onChange={(newValue) =>
-                                                    setEntradaData({ ...entradaData, fecha_recepcion: newValue })
-                                                }
-                                                renderInput={(params) => (
-                                                    <TextField {...params} fullWidth variant="outlined" size="small" />
-                                                )}
-                                            />
-                                        </LocalizationProvider>
-                                    ) : field === 'area' ? (
-                                        <TextField
-                                            select
-                                            fullWidth
-                                            label="Área"
-                                            value={entradaData.area}
-                                            onChange={(e) =>//eSTE ONcHANGE es el evento de cambio en el campo area para que cuando se seleccione un valor se actualice el campo area
-                                                setEntradaData({ ...entradaData, area: e.target.value }) // Asignamos el valor seleccionado al campo area
-                                            }
-                                            variant="outlined"
-                                            size="small"
-                                        >
-                                            {areas.map((area) => (
-                                                <MenuItem key={area.id} value={area.id}>
-                                                    {area.nombre_area}
-                                                </MenuItem>
-                                            ))}
-                                        </TextField>
-                                    ) : field === 'cliente' ? (
-                                        <TextField
-                                            select
-                                            fullWidth
-                                            label="Cliente"
-                                            value={entradaData.cliente}
-                                            onChange={(e) =>
-                                                setEntradaData({ ...entradaData, cliente: e.target.value })
-                                            }
-                                            variant="outlined"
-                                            size="small"
-                                        >
-                                            {clientes.map((cliente) => (
-                                                <MenuItem key={cliente.id} value={cliente.id}>
-                                                    {cliente.nombre_cliente}
-                                                </MenuItem>
-                                            ))}
-                                        </TextField>
-                                    ) : field === 'estado' ? ( // Aquí agregamos el menú para el campo 'estado'
-                                        <TextField
-                                            select
-                                            fullWidth
-                                            label="Estado"
-                                            value={entradaData.estado}
-                                            onChange={(e) =>
-                                                setEntradaData({ ...entradaData, estado: e.target.value })
-                                            }
-                                            variant="outlined"
-                                            size="small"
-                                        >
-                                            {['A1', 'B1', 'B2', 'D1'].map((option) => (
-                                                <MenuItem key={option} value={option}>
-                                                    {option}
-                                                </MenuItem>
-                                            ))}
-                                        </TextField>
-                                    ) : (
-                                        <TextField
-                                            fullWidth
-                                            label={fieldEntradas[field] || field}
-                                            variant="outlined"
-                                            size="small"
-                                            name={field}
-                                            value={entradaData[field]}
-                                            onChange={handleInputChange}
-                                            sx={{
-                                                width: '100%',
-                                                maxWidth: '300px',
-                                            }}
-                                        />
-                                    )}
-                                </Grid>
-
-                            ))}
-                        </Grid>
-
-                        <Box mt={3} display="flex" justifyContent="center">
-                            <ToastContainer />
-                            <Button
-                                type="submit"
-                                variant="contained"
-                                color="primary"
-                                sx={{
-                                    padding: '8px 16px', // Tamaño reducido del botón
-                                    fontSize: '0.9rem', // Texto más pequeño
-                                    maxWidth: '150px', // Ancho máximo
-                                }}
-                                onClick={showtoast}
-                            >
-                                Registrar Entrada
-                            </Button>
-                        </Box>
-                    </form>
-                </Box>
-            );
-        }
-        if (almacenView === 'salidas') {
-            return (
-                <Box
-                    sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-start',
-                        justifyContent: 'flex-start',
-                        marginTop: '100px',
-                        height: '75%',
-                        width: '25%',
-                    }}
-                >
-                    <Typography variant="h4" color="primary" gutterBottom>
-                        Salidas
-                    </Typography>
-                    <Typography variant="body1" gutterBottom>
-                        Registrar nueva salida de productos.
-                    </Typography>
-                    <form onSubmit={handleSalidaFormSubmit}>
-                        <Grid container spacing={2} justifyContent="center">
-                            <Grid item xs={12} sm={6} md={4}>
-                                <TextField
-                                    label="Código de Lote"
-                                    variant="outlined"
-                                    fullWidth
-                                    name="codigo_lote"
-                                    value={salidaData.codigo_lote}
-                                    onChange={handleSalidaInputChange}
-                                    required
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={4}>
-                                <TextField
-                                    label="Cantidad"
-                                    variant="outlined"
-                                    fullWidth
-                                    type="number"
-                                    name="cantidad"
-                                    value={salidaData.cantidad}
-                                    onChange={handleSalidaInputChange}
-                                    required
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={4}>
-                                <TextField
-                                    select
-                                    label="Cliente"
-                                    variant="outlined"
-                                    fullWidth
-                                    name="Cliente"
-                                    value={salidaData.Cliente}
-                                    onChange={handleSalidaInputChange}
-                                    required
-                                >
-                                    {clientes.map((cliente) => (
-                                        <MenuItem key={cliente.id} value={cliente.id}>
-                                            {cliente.nombre_cliente}
-                                        </MenuItem>
-                                    ))}
-                                </TextField>
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={4}>
-                                <LocalizationProvider dateAdapter={AdapterDateFns} locale={esLocale}>
-                                    <DatePicker
-                                        label="Fecha de Salida"
-                                        value={salidaData.fecha_salida}
-                                        onChange={(newValue) =>
-                                            setSalidaData((prevState) => ({
-                                                ...prevState,
-                                                fecha_salida: newValue,
-                                            }))
-                                        }
-                                        renderInput={(params) => <TextField {...params} fullWidth required />}
-                                    />
-                                </LocalizationProvider>
-                            </Grid>
-                            <Grid item xs={12} sm={6} md={4}>
-                                <TextField
-                                    label="Observaciones"
-                                    variant="outlined"
-                                    fullWidth
-                                    name="observaciones"
-                                    value={salidaData.observaciones}
-                                    onChange={handleSalidaInputChange}
-                                    multiline
-                                    rows={3}
-                                />
-                            </Grid>
-                        </Grid>
-                        <Box mt={3} display="flex" justifyContent="center">
-                            <Button type="submit" variant="contained" color="primary">
-                                Registrar Salida
-                            </Button>
-                        </Box>
-                    </form>
-
-                </Box>
-            );
-        }
-        if (almacenView === 'traslados') {
-            return (
-                <Box
-                    sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-start',
-                        justifyContent: 'flex-start',
-                        marginTop: '100px',
-                        height: '75%',
-                        width: '25%',
-                    }}
-                >
-                    <Typography variant="h4" color="primary" gutterBottom>
-                        Traslados
-                    </Typography>
-                    <Typography variant="body1" gutterBottom>
-                        Registrar nuevo traslado de lote entre ubicaciones.
-                    </Typography>
-                    <form onSubmit={handleTrasladoFormSubmit}>
-                        <Grid container spacing={2} justifyContent="center">
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    label="Código de Lote"
-                                    variant="outlined"
-                                    fullWidth
-                                    name="codigo_lote"
-                                    value={trasladoData.codigo_lote}
-                                    onChange={handleTrasladoInputChange}
-                                    required
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    label="Ubicación de Origen"
-                                    variant="outlined"
-                                    fullWidth
-                                    name="ubicacion_origen"
-                                    value={trasladoData.ubicacion_origen}
-                                    onChange={handleTrasladoInputChange}
-                                    disabled // Deshabilitar edición manual
-                                />
-                            </Grid>
-
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    select
-                                    label="Ubicación de Destino"
-                                    variant="outlined"
-                                    fullWidth
-                                    name="ubicacion_destino"
-                                    value={trasladoData.ubicacion_destino}
-                                    onChange={handleTrasladoInputChange}
-                                    required
-                                >
-                                    {ubicaciones.map((ubicacion) => (
-                                        <MenuItem key={ubicacion.id} value={ubicacion.id}>
-                                            {ubicacion.nombre}
-                                        </MenuItem>
-                                    ))}
-                                </TextField>
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    label="Area"
-                                    variant="outlined"
-                                    fullWidth
-                                    type="text"
-                                    name="area"
-                                    value={trasladoData.area}
-                                    onChange={handleTrasladoInputChange}
-                                    required
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    label="Observaciones"
-                                    variant="outlined"
-                                    fullWidth
-                                    multiline
-                                    rows={3}
-                                    name="observaciones"
-                                    value={trasladoData.observaciones}
-                                    onChange={handleTrasladoInputChange}
-                                />
-                            </Grid>
-                        </Grid>
-                        <Box mt={3} display="flex" justifyContent="center">
-                            <Button type="submit" variant="contained" color="primary">
-                                Registrar Traslado
-                            </Button>
-                        </Box>
-                    </form>
-                </Box>
-            );
-        }
-
-        return (
-            <Box>
-                <Typography variant="h4" color="primary" gutterBottom>
-                    Almacenes
-                </Typography>
-                <Typography variant="body1" gutterBottom>
-                    Selecciona una opción para continuar:
-                </Typography>
-                <Grid container spacing={3} justifyContent="center" sx={{ marginTop: 4 }}>
-                    {[
-                        {
-                            title: 'Entradas',
-                            description: 'Registrar nuevas entradas',
-                            image: '/path/to/entradas_image.png', // Ruta de la imagen para Entradas
-                            action: () => handleAlmacenViewChange('entradas'),
-                        },
-                        {
-                            title: 'Salidas',
-                            description: 'Registrar salidas de productos',
-                            image: '/path/to/salidas_image.png', // Ruta de la imagen para Salidas
-                            action: () => handleAlmacenViewChange('salidas'),
-                        },
-                        {
-                            title: 'Traslados',
-                            description: 'Gestionar traslados entre almacenes',
-                            image: '/path/to/traslados_image.png', // Ruta de la imagen para Traslados
-                            action: () => handleAlmacenViewChange('traslados'),
-                        },
-                    ].map((item, index) => (
-                        <Grid item xs={12} sm={6} md={4} key={index}>
-                            <Card
-                                onClick={item.action}
-                                sx={{
-                                    cursor: 'pointer',
-                                    height: 250,
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    textAlign: 'center',
-                                    backgroundColor: '#f5f5f5',
-                                    boxShadow: 3,
-                                    transition: 'transform 0.2s',
-                                    '&:hover': {
-                                        transform: 'scale(1.05)',
-                                        backgroundColor: '#e3f2fd',
-                                    },
-                                }}
-                            >
-                                <Box
-                                    component="img"
-                                    src={item.image}
-                                    alt={`${item.title} image`}
-                                    sx={{ height: 100, marginBottom: 2 }}
-
-                                />
-                                <Typography variant="h6" gutterBottom>
-                                    {item.title}
-                                </Typography>
-                                <Typography variant="body2" color="textSecondary">
-                                    {item.description}
-                                </Typography>
-                            </Card>
-                        </Grid>
-                    ))}
-                </Grid>
-            </Box>
-        );
-    };
     const renderInventoryContent = () => {  //Se renderiza el contenido del tab 'Inventario'
         return (
             <Box>
@@ -912,8 +581,6 @@ const Dashboard = () => {
         );
     };
     const renderConfigContent = () => { //Se renderiza el contenido del tab 'Configuración'
-
-
 
         const handleSearch = () => {
             const filteredData = inventoryData.filter(item =>
@@ -947,8 +614,7 @@ const Dashboard = () => {
 
         return (
             <Box sx={{ display: 'flex', height: '85vh', marginLeft: "20px", marginRight: "30rem" }}>
-                <CssBaseline />
-                <ToastContainer />
+
                 <Typography variant="h4" color="primary" gutterBottom>
                     Inventario
                 </Typography>
@@ -1007,19 +673,41 @@ const Dashboard = () => {
         );
     };
 
+
     const renderContent = () => {//Se controla el estado del tab
         switch (selectedTab) {
 
-            case 'almacenes': //Se renderiza el contenido del tab 'Almacenes'
-                return renderAlmacenContent();
+            case 'almacenes':
+                return renderAlmacenContent(
+                    almacenView,
+                    { entradaData, salidaData, trasladoData, areas, clientes },
+                    {
+                        handleFormSubmit,
+                        handleSalidaFormSubmit,
+                        handleTrasladoFormSubmit,
+                        handleInputChange,
+                        handleSalidaInputChange,
+                        handleTrasladoInputChange,
+                        handleAlmacenViewChange,
+                    },
+                    {
+                        setEntradaData, // Verifica que esta función esté disponible en el contexto del componente
+                        fieldEntradas,  // Verifica que este objeto esté definido
+                        ubicaciones,    // Verifica que esta lista esté definida
+                        setSalidaData,  // Incluye también setSalidaData si se usa
+                    }
+                );
             case 'perfil': //Se renderiza el contenido del tab 'Perfil'
                 return renderUserContent();
             case 'inventario': //Se renderiza el contenido del tab 'Inventario'
                 return renderInventoryContent();
             case 'configuracion': //Se renderiza el contenido del tab 'Configuración'
-                return renderConfigContent();
+                return renderConfigContent(setSalidaData);
+            case 'dashboard': //Se renderiza el contenido del tab 'Dashboard'
+                // return renderDashboardCards();
+                return <DashboardCards cards={cards} />;
             default:
-                return renderDashboardCards();
+                return <DashboardCards cards={cards} />;
         }
     };
 
@@ -1043,7 +731,7 @@ const Dashboard = () => {
                     </Typography>
                 </Toolbar>
             </AppBar>
-
+            <ToastContainer />
             {/* Menú Lateral */}
             <Box
                 sx={{//En esta parte se definen las propiedades del div que contiene el menú lateral
@@ -1056,7 +744,6 @@ const Dashboard = () => {
                     left: 0,
                     bgcolor: '#f5f5f5',
                     boxShadow: 3,
-
                 }}
             >
                 <List>
@@ -1065,11 +752,12 @@ const Dashboard = () => {
                         { text: 'Almacenes', icon: <StorageIcon /> },
                         { text: 'Inventario', icon: <InventoryIcon /> },
                         { text: 'Perfil', icon: <PersonIcon /> },
-                        { text: 'Configuración', icon: <SettingsIcon /> },
+                        { text: 'Configuracion', icon: <SettingsIcon /> },
                     ].map((item, index) => (
                         <ListItem disablePadding key={index}>
                             <ListItemButton
                                 onClick={() => handleTabChange(item.text.toLowerCase())}
+                                key={index}
                                 sx={{
                                     bgcolor: selectedTab === item.text.toLowerCase() ? '#5499c7' : 'white',
                                     '&:hover': { bgcolor: '#5499c7' },
