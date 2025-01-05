@@ -30,9 +30,10 @@ const renderAlmacenContent = (
                     flexDirection: 'column',
                     alignItems: 'flex-start',
                     justifyContent: 'flex-start',
-                    marginTop: '100px',
+                    marginTop: '70px',
+                    marginleft: '50px',
                     height: '75%',
-                    width: '25%',
+                    width: '30%',
                 }}
             >
                 <Typography variant="h4" color="primary" gutterBottom>
@@ -162,9 +163,10 @@ const renderAlmacenContent = (
                     flexDirection: 'column',
                     alignItems: 'flex-start',
                     justifyContent: 'flex-start',
-                    marginTop: '100px',
+                    marginTop: '70px',
+                    marginleft: '50px',
                     height: '75%',
-                    width: '25%',
+                    width: '30%',
                 }}
             >
                 <Typography variant="h4" color="primary" gutterBottom>

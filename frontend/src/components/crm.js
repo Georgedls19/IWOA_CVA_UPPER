@@ -48,6 +48,9 @@ import { set } from 'date-fns';
 //Exportacion de paginas
 import renderAlmacenContent from '../pages/almacen';
 import DashboardCards from '../pages/dashboard';
+import renderUserContent from '../pages/usuarios';
+import RenderInventoryContent from '../pages/inventario';
+import renderConfigContent from '../pages/config';
 
 
 const Dashboard = () => {
@@ -150,6 +153,7 @@ const Dashboard = () => {
             }
         };
         fetchPromedioSalidas();
+
     }, []);
 
     // Estado para el formulario dinámico
@@ -218,7 +222,7 @@ const Dashboard = () => {
             return null;
         }
     };
-    const handleSalidaInputChange = async (e) => {
+    const handleSalidaInputChange = async (e) => {// Esta funcion se encarga de actualizar el estado de salidaData cuando se escribe en un campo
         const { name, value } = e.target;
         <ToastContainer />
         setSalidaData((prevState) => ({
@@ -262,7 +266,7 @@ const Dashboard = () => {
             }
         }
     };
-    const handleSalidaFormSubmit = async (e) => {
+    const handleSalidaFormSubmit = async (e) => {//Este método se encarga de enviar los datos al back-end
         e.preventDefault();
         try {
             // Preparar los datos para la solicitud
@@ -286,11 +290,17 @@ const Dashboard = () => {
                 throw new Error(errorData.message || 'Error al registrar la salida');
             }
 
-            const result = await response.json();
-            alert(`Salida registrada con éxito. 
-               Movimiento: ${JSON.stringify(result.movimiento)}, 
-               Lote Actualizado: ${JSON.stringify(result.loteActualizado)}`);
-
+            toast.success('Salida registrada con éxito',
+                {
+                    position: "top-right",
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                }
+            );
             // Limpiar el formulario después de registrar la salida
             setSalidaData({
                 codigo_lote: '',
@@ -299,9 +309,21 @@ const Dashboard = () => {
                 fecha_salida: '',
                 observaciones: '',
             });
+            toast.success('Salida registrada con éxito',
+                {
+                    position: "top-right",
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                }
+            );
         } catch (error) {
             console.error('Error:', error.message);
-            alert(`Error al registrar la salida: ${error.message}`);
+            // alert(`Error al registrar la salida: ${error.message}`);
+            toast.error(`Error: ${error.message}`);
         }
     };
     const handleInputChange = async (e) => {//Esta función se encarga de manejar los cambios en los campos de entrada y salida
@@ -497,7 +519,7 @@ const Dashboard = () => {
         }
     };
     const handleTabChange = (tab) => { //Función que cambia el estado del tab
-        toast.info(tab);
+
         setSelectedTab(tab);
         setAlmacenView(null);
     };
@@ -556,18 +578,98 @@ const Dashboard = () => {
             />
         );
     };
-    const renderInventoryContent = () => {  //Se renderiza el contenido del tab 'Inventario'
-        return (
-            <Box>
-                <Typography variant="h4" color="primary" gutterBottom>
-                    Inventario
-                </Typography>
-                <Typography>
-                    Consulta y administra el inventario de productos.
-                </Typography>
-            </Box>
-        );
-    };
+    // const renderInventoryContent = () => {  //Se renderiza el contenido del tab 'Inventario'
+    //     const handleSearch = () => {
+    //         const filteredData = inventoryData.filter(item =>
+    //             item.codigo_lote.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    //             item.cliente.toLowerCase().includes(searchQuery.toLowerCase())
+    //         );
+    //         setInventoryData(filteredData);
+    //     };
+
+    //     const exportInventory = () => {
+    //         const csvContent = [
+    //             ["Código de Lote", "Cliente", "Cantidad", "Ubicación", "Estado"],
+    //             ...inventoryData.map(item => [
+    //                 item.codigo_lote,
+    //                 item.cliente,
+    //                 item.cantidad,
+    //                 item.ubicacion,
+    //                 item.estado
+    //             ])
+    //         ]
+    //             .map(e => e.join(","))
+    //             .join("\n");
+
+    //         const blob = new Blob([csvContent], { type: "text/csv" });
+    //         const url = URL.createObjectURL(blob);
+    //         const link = document.createElement("a");
+    //         link.href = url;
+    //         link.download = "inventario.csv";
+    //         link.click();
+    //     };
+
+    //     return (
+
+    //         <Box sx={{ display: 'flex', height: '85vh', marginLeft: "20px", marginRight: "30rem" }}>
+
+    //             <Typography variant="h4" color="primary" gutterBottom>
+    //                 Inventario
+    //             </Typography>
+    //             <Grid container spacing={2} alignItems="center" justifyContent="space-between">
+    //                 <Grid item xs={8}>
+    //                     <TextField
+    //                         label="Buscar en inventario"
+    //                         variant="outlined"
+    //                         fullWidth
+    //                         value={searchQuery}
+    //                         onChange={(e) => setSearchQuery(e.target.value)}
+    //                     />
+    //                 </Grid>
+    //                 <Grid item xs={2}>
+    //                     <IconButton onClick={handleSearch} color="primary">
+    //                         <SearchIcon />
+    //                     </IconButton>
+    //                 </Grid>
+    //                 <Grid item xs={2}>
+    //                     <Button
+    //                         variant="contained"
+    //                         color="primary"
+    //                         startIcon={<GetAppIcon />}
+    //                         onClick={exportInventory}
+    //                     >
+    //                         Exportar
+    //                     </Button>
+    //                 </Grid>
+    //             </Grid>
+
+    //             <TableContainer component={Paper} sx={{ marginTop: 4 }}>
+    //                 <Table>
+    //                     <TableHead>
+    //                         <TableRow>
+    //                             <TableCell>Código de Lote</TableCell>
+    //                             <TableCell>Cliente</TableCell>
+    //                             <TableCell>Cantidad</TableCell>
+    //                             <TableCell>Ubicación</TableCell>
+    //                             <TableCell>Estado</TableCell>
+    //                         </TableRow>
+    //                     </TableHead>
+    //                     <TableBody>
+    //                         {inventoryData.map((item, index) => (
+    //                             <TableRow key={index}>
+    //                                 <TableCell>{item.codigo_lote}</TableCell>
+    //                                 <TableCell>{item.cliente}</TableCell>
+    //                                 <TableCell>{item.cantidad}</TableCell>
+    //                                 <TableCell>{item.ubicacion}</TableCell>
+    //                                 <TableCell>{item.estado}</TableCell>
+    //                             </TableRow>
+    //                         ))}
+    //                     </TableBody>
+    //                 </Table>
+    //             </TableContainer>
+    //         </Box>
+    //     );
+    // };
     const renderUserContent = () => { //Se renderiza el contenido del tab 'Perfil'
         return (
             <Box>
@@ -582,95 +684,7 @@ const Dashboard = () => {
     };
     const renderConfigContent = () => { //Se renderiza el contenido del tab 'Configuración'
 
-        const handleSearch = () => {
-            const filteredData = inventoryData.filter(item =>
-                item.codigo_lote.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                item.cliente.toLowerCase().includes(searchQuery.toLowerCase())
-            );
-            setInventoryData(filteredData);
-        };
 
-        const exportInventory = () => {
-            const csvContent = [
-                ["Código de Lote", "Cliente", "Cantidad", "Ubicación", "Estado"],
-                ...inventoryData.map(item => [
-                    item.codigo_lote,
-                    item.cliente,
-                    item.cantidad,
-                    item.ubicacion,
-                    item.estado
-                ])
-            ]
-                .map(e => e.join(","))
-                .join("\n");
-
-            const blob = new Blob([csvContent], { type: "text/csv" });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = "inventario.csv";
-            link.click();
-        };
-
-        return (
-            <Box sx={{ display: 'flex', height: '85vh', marginLeft: "20px", marginRight: "30rem" }}>
-
-                <Typography variant="h4" color="primary" gutterBottom>
-                    Inventario
-                </Typography>
-                <Grid container spacing={2} alignItems="center" justifyContent="space-between">
-                    <Grid item xs={8}>
-                        <TextField
-                            label="Buscar en inventario"
-                            variant="outlined"
-                            fullWidth
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </Grid>
-                    <Grid item xs={2}>
-                        <IconButton onClick={handleSearch} color="primary">
-                            <SearchIcon />
-                        </IconButton>
-                    </Grid>
-                    <Grid item xs={2}>
-                        <Button
-                            variant="contained"
-                            color="primary"
-                            startIcon={<GetAppIcon />}
-                            onClick={exportInventory}
-                        >
-                            Exportar
-                        </Button>
-                    </Grid>
-                </Grid>
-
-                <TableContainer component={Paper} sx={{ marginTop: 4 }}>
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>Código de Lote</TableCell>
-                                <TableCell>Cliente</TableCell>
-                                <TableCell>Cantidad</TableCell>
-                                <TableCell>Ubicación</TableCell>
-                                <TableCell>Estado</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {inventoryData.map((item, index) => (
-                                <TableRow key={index}>
-                                    <TableCell>{item.codigo_lote}</TableCell>
-                                    <TableCell>{item.cliente}</TableCell>
-                                    <TableCell>{item.cantidad}</TableCell>
-                                    <TableCell>{item.ubicacion}</TableCell>
-                                    <TableCell>{item.estado}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            </Box>
-        );
     };
 
 
@@ -699,8 +713,8 @@ const Dashboard = () => {
                 );
             case 'perfil': //Se renderiza el contenido del tab 'Perfil'
                 return renderUserContent();
-            case 'inventario': //Se renderiza el contenido del tab 'Inventario'
-                return renderInventoryContent();
+            case 'inventario':
+                return <RenderInventoryContent inventoryData={inventoryData} />;
             case 'configuracion': //Se renderiza el contenido del tab 'Configuración'
                 return renderConfigContent(setSalidaData);
             case 'dashboard': //Se renderiza el contenido del tab 'Dashboard'
@@ -715,6 +729,7 @@ const Dashboard = () => {
     return (
         <Box sx={{ display: 'flex', height: '85vh', marginLeft: "20px", marginRight: "30rem" }}> {/* Contenedor principal ocupa toda la pantalla */}
             <CssBaseline />
+
             {/* Barra Superior */}
             <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>{/* Barra superior con el logo y el boton de menu */}
                 <Toolbar>{/*Aqui se definen las propiedades de la barra superior*/}
@@ -732,6 +747,7 @@ const Dashboard = () => {
                 </Toolbar>
             </AppBar>
             <ToastContainer />
+
             {/* Menú Lateral */}
             <Box
                 sx={{//En esta parte se definen las propiedades del div que contiene el menú lateral
@@ -790,7 +806,7 @@ const Dashboard = () => {
             <Box
                 component="main"// Se establece el componente principal
                 sx={{ // Se definen las propiedades del div que contiene el contenido
-                    flexGrow: 1,
+                    flexGrow: 1,// FlexGrow: 1 permite que el contenido se expanda y se ajuste a la altura del contenedor
                     padding: 3,
                     backgroundColor: '#f5f5f5',
                     height: '100vh', // Altura consistente
@@ -806,6 +822,8 @@ const Dashboard = () => {
                 {renderContent()} { /*Se manda a llamar a la función renderContent() para renderizar el contenido dependiendo del estado del tab*/}
             </Box>
         </Box>
+
+
 
     );
 };

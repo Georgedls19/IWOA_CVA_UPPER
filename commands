@@ -1,5 +1,5 @@
-npm run dev--> Ejecutar archivos.
-npm start--> Ejecutar archivos.
+npm run dev--> Ejecutar archivos.(backend)
+npm start--> Ejecutar archivos.(frontend)
 npm i cors--> Comando para usar cors.(backend)
 npm i dotenv--> Comando para usar .env y crear variables de entorno.()
 npm install pg -> Ejecutar en archivo "backend"

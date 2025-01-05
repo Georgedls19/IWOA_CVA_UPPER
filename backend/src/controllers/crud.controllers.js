@@ -1,4 +1,6 @@
 const { pool } = require('../db');
+
+
 // Registrar una nueva entrada
 const registrarEntrada = async (req, res) => {
     try {
@@ -85,7 +87,7 @@ const registrarSalida = async (req, res) => {
         const lote = loteResult.rows[0];
 
         if (lote.cantidad < cantidad) {
-            return res.status(400).json({ message: 'Cantidad insuficiente en el lote' });
+            return res.status(400).json({ message: 'Existencias insuficientes' });
         }
 
         // Registrar la salida en la tabla de movimientos
@@ -115,6 +117,7 @@ const registrarSalida = async (req, res) => {
             movimiento: movimientoResult.rows[0],
             loteActualizado: actualizarLoteResult.rows[0],
         });
+
     } catch (error) {
         console.error("Error al registrar salida:", error.message);
         res.status(500).json({ message: 'Error en el servidor al registrar la salida' });
@@ -263,6 +266,75 @@ const PromedioSalidas = async (req, res) => {
         res.status(500).json({ message: 'Error en el servidor al obtener el promedio de salidas' });
     }
 };
+
+const getEntradasSalidas = async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                TO_CHAR(fecha_movimiento, 'Month') AS mes,
+                tipo_movimiento,
+                SUM(cantidad) AS total
+            FROM movimientos
+            GROUP BY mes, tipo_movimiento, DATE_PART('month', fecha_movimiento)
+            ORDER BY DATE_PART('month', fecha_movimiento);
+        `;
+        const result = await pool.query(query);
+
+        // Procesar datos para frontend
+        const months = [];
+        const entradas = [];
+        const salidas = [];
+
+        result.rows.forEach((row) => {
+            const monthIndex = months.indexOf(row.mes.trim());
+            if (monthIndex === -1) {
+                months.push(row.mes.trim());
+                entradas.push(row.tipo_movimiento === 'Entrada' ? row.total : 0);
+                salidas.push(row.tipo_movimiento === 'Salida' ? row.total : 0);
+            } else {
+                if (row.tipo_movimiento === 'Entrada') {
+                    entradas[monthIndex] = row.total;
+                } else if (row.tipo_movimiento === 'Salida') {
+                    salidas[monthIndex] = row.total;
+                }
+            }
+        });
+
+        res.json({ months, entradas, salidas });
+    } catch (error) {
+        console.error('Error al obtener datos:', error);
+        res.status(500).json({ message: 'Error en el servidor' });
+    }
+};
+
+const getLotes = async (req, res) => {
+    try {
+        const { page = 1, limit = 5 } = req.query; // Manejo de paginación
+        const offset = (page - 1) * limit;
+
+        // Consulta a la base de datos con paginación
+        const [rows] = await pool.query(
+            `SELECT codigo_lote, cliente, cantidad, ubicacion, estado 
+             FROM lotes 
+             LIMIT ?, ?`,
+            [parseInt(offset, 10), parseInt(limit, 10)]
+        );
+
+        // Obtener el total de registros
+        const [total] = await pool.query(`SELECT COUNT(*) AS count FROM lotes`);
+
+        res.json({
+            data: rows,
+            total: total[0].count,
+            page: parseInt(page, 10),
+            limit: parseInt(limit, 10),
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error al obtener los lotes' });
+    }
+};
+
 module.exports = {
     registrarEntrada,
     registrarSalida,
@@ -273,4 +345,6 @@ module.exports = {
     entradaMovimiento,
     PromedioEntradas,
     PromedioSalidas,
+    getEntradasSalidas,
+    getLotes,
 };
