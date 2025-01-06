@@ -5,10 +5,11 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Toolti
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-const DashboardCards = ({ cards }) => {
+const DashboardCards = ({ cards, onCardClick }) => {
     const [barData, setBarData] = useState(null);
     const [locations, setLocations] = useState([]);
     const [userActivity, setUserActivity] = useState([]);
+
 
     useEffect(() => {
         const fetchChartData = async () => {
@@ -70,19 +71,20 @@ const DashboardCards = ({ cards }) => {
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '2rem',
-                width: '60%',
+                width: '55%',
             }}
         >
             {/* Cards Section */}
             <Grid container spacing={3} justifyContent="center">
                 {cards.map((card) => (
-                    <Grid item xs={12} sm={6} md={4} key={card.id}>
+                    <Grid item xs={12} sm={6} md={4} key={card.id} onClick={() => onCardClick(card.id)}>
                         <Card
                             sx={{
                                 textAlign: 'center',
                                 backgroundColor: '#f5f5f5',
                                 boxShadow: 3,
                                 transition: 'transform 0.2s',
+                                cursor: 'pointer',
                                 '&:hover': {
                                     transform: 'scale(1.05)',
                                     backgroundColor: '#e3f2fd',

@@ -50,14 +50,17 @@ import renderAlmacenContent from '../pages/almacen';
 import DashboardCards from '../pages/dashboard';
 import renderUserContent from '../pages/usuarios';
 import RenderInventoryContent from '../pages/inventario';
-import renderConfigContent from '../pages/config';
+import ConfigPage from '../pages/config';
+import AccountCircle from '@mui/icons-material/AccountCircle';
+import Menu from '@mui/material/Menu';
+
 
 
 const Dashboard = () => {
     const [cards, setCards] = useState([
         { id: 1, title: 'Promedio de Entradas', content: 'Cargando...' },
-        { id: 2, title: 'Promedio de Salidas', content: '78%' }, // Puedes agregar lógica para esta tarjeta
-        { id: 3, title: 'Actualizaciones Recientes', content: '3 nuevas actualizaciones' },
+        { id: 2, title: 'Promedio de Salidas', content: 'Cargando...' }, // Puedes agregar lógica para esta tarjeta
+        { id: 3, title: 'Actualizaciones Recientes', content: 'Cargando...' },
     ]); // Lista inicial de cuadros en el dashboard
     //Los useState se utilizan para crear variables que se pueden manipular dentro de la aplicación, esot no se almacena en el estado global
     const [drawerOpen, setDrawerOpen] = useState(true); // Controla el estado del menú lateral
@@ -68,6 +71,33 @@ const Dashboard = () => {
     const [clientes, setClientes] = useState([]); // Opciones de clientes
     const [inventoryData, setInventoryData] = useState([]); // Datos del inventario
     const [searchQuery, setSearchQuery] = useState(""); // Consulta de búsqueda
+    const [dailyUpdates, setDailyUpdates] = useState({
+        entradas: 0,
+        salidas: 0,
+        traslados: 0,
+    });
+    const [lastUpdateDate, setLastUpdateDate] = useState(new Date().toDateString());
+    const addUpdate = (type) => {
+        setDailyUpdates((prev) => ({
+            ...prev,
+            [type]: prev[type] + 1,
+        }));
+    };
+    const handleCardClick = (cardId) => {
+        if (cardId === 3) { // Si la tarjeta es "Actualizaciones Recientes"
+            setSelectedTab('inventario'); // Cambia a la pestaña "inventario"
+        }
+    };
+    const [anchorEl, setAnchorEl] = useState(null);
+    const handleMenuOpen = (event) => {
+        setAnchorEl(event.currentTarget);
+    };
+    const handleMenuClose = () => {
+        setAnchorEl(null);
+    };
+    const [user, setUser] = useState(null);
+
+
 
     //Funciones     
     useEffect(() => {//Este useEffect se encarga de obtener las opciones de ubicaciones, áreas y clientes
@@ -100,6 +130,7 @@ const Dashboard = () => {
             }
         };
         fetchInventory();
+
         const fetchPromedioEntradas = async () => {
             try {
                 const response = await fetch('http://localhost:4000/promedio-entradas'); // Endpoint de promedio
@@ -112,7 +143,7 @@ const Dashboard = () => {
                 setCards((prevCards) =>
                     prevCards.map((card) =>
                         card.id === 1 // Asegúrate de usar el ID correcto
-                            ? { ...card, content: `${data.promedio} unidades (Promedio)` }
+                            ? { ...card, content: `${data.promedio}% de entradas` }
                             : card
                     )
                 );
@@ -137,7 +168,7 @@ const Dashboard = () => {
                 setCards((prevCards) =>
                     prevCards.map((card) =>
                         card.id === 2
-                            ? { ...card, content: `${data.promedio} unidades (Promedio)` }
+                            ? { ...card, content: `${data.promedio}% de salidas` }
                             : card
                     )
                 );
@@ -155,6 +186,66 @@ const Dashboard = () => {
         fetchPromedioSalidas();
 
     }, []);
+
+    useEffect(() => {//Este useEffect se encarga de obtener las opciones de ubicaciones, áreas y clientes
+        const checkDate = () => {
+            const today = new Date().toDateString();
+            if (today !== lastUpdateDate) {
+                setDailyUpdates({ entradas: 0, salidas: 0, traslados: 0 });
+                setLastUpdateDate(today);
+            }
+        };
+
+        const interval = setInterval(checkDate, 1000 * 60);
+        return () => clearInterval(interval);
+    }, [lastUpdateDate]);
+
+    useEffect(() => {//Este useEffect se encarga de actualizar las tarjetas del dashboard
+        setCards((prevCards) =>
+            prevCards.map((card) =>
+                card.id === 3
+                    ? {
+                        ...card,
+                        content: `Entradas: ${dailyUpdates.entradas}, Salidas: ${dailyUpdates.salidas}, Traslados: ${dailyUpdates.traslados}`,
+                    }
+                    : card
+            )
+        );
+    }, [dailyUpdates]);
+    const [isUserLoaded, setIsUserLoaded] = useState(false); // Estado para controlar si el usuario ya fue cargado
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            const token = localStorage.getItem('token'); // Recuperar el token almacenado
+            if (!token) {
+                console.error('Token no encontrado');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:4000/usuario', {
+                    headers: {
+                        Authorization: `Bearer ${token}`, // Adjuntar el token al encabezado
+                    },
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setUser(data); // Establecer los datos del usuario
+
+                    if (!isUserLoaded) {
+                        toast.success(`Bienvenido, ${data.nombre}`); // Mostrar el mensaje solo una vez
+                        setIsUserLoaded(true); // Marcar que el usuario ya fue cargado
+                    }
+                } else {
+                    console.error('Error al obtener usuario:', response.status);
+                }
+            } catch (error) {
+                console.error('Error de conexión:', error);
+            }
+        };
+
+        fetchUser();
+    }, [isUserLoaded]); // Dependencia para evitar múltiples llamadas
 
     // Estado para el formulario dinámico
     const [entradaData, setEntradaData] = useState({ //aqui se guarda el estado del formulario dinámico
@@ -320,6 +411,7 @@ const Dashboard = () => {
                     progress: undefined,
                 }
             );
+            addUpdate('salidas');
         } catch (error) {
             console.error('Error:', error.message);
             // alert(`Error al registrar la salida: ${error.message}`);
@@ -353,8 +445,6 @@ const Dashboard = () => {
             console.log(`Se borró la celda ${name}`);
         }
     };
-
-
     const handleFormSubmit = async (e) => {//Esta función se encarga de enviar los datos al servidor en la seccion de entradas  
         e.preventDefault();
 
@@ -418,6 +508,7 @@ const Dashboard = () => {
                     position: "top-right",
                     autoClose: 3000,
                 });
+            addUpdate('entradas');
         } catch (error) {
             toast.error(`${error.message}`,
                 {
@@ -513,6 +604,7 @@ const Dashboard = () => {
                 area: '',
                 observaciones: '',
             });
+            addUpdate('traslados');
         } catch (error) {
             console.error('Error al registrar el traslado:', error);
             alert('Hubo un error al registrar el traslado');
@@ -578,114 +670,21 @@ const Dashboard = () => {
             />
         );
     };
-    // const renderInventoryContent = () => {  //Se renderiza el contenido del tab 'Inventario'
-    //     const handleSearch = () => {
-    //         const filteredData = inventoryData.filter(item =>
-    //             item.codigo_lote.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    //             item.cliente.toLowerCase().includes(searchQuery.toLowerCase())
-    //         );
-    //         setInventoryData(filteredData);
-    //     };
 
-    //     const exportInventory = () => {
-    //         const csvContent = [
-    //             ["Código de Lote", "Cliente", "Cantidad", "Ubicación", "Estado"],
-    //             ...inventoryData.map(item => [
-    //                 item.codigo_lote,
-    //                 item.cliente,
-    //                 item.cantidad,
-    //                 item.ubicacion,
-    //                 item.estado
-    //             ])
-    //         ]
-    //             .map(e => e.join(","))
-    //             .join("\n");
 
-    //         const blob = new Blob([csvContent], { type: "text/csv" });
-    //         const url = URL.createObjectURL(blob);
-    //         const link = document.createElement("a");
-    //         link.href = url;
-    //         link.download = "inventario.csv";
-    //         link.click();
-    //     };
-
-    //     return (
-
-    //         <Box sx={{ display: 'flex', height: '85vh', marginLeft: "20px", marginRight: "30rem" }}>
-
-    //             <Typography variant="h4" color="primary" gutterBottom>
-    //                 Inventario
-    //             </Typography>
-    //             <Grid container spacing={2} alignItems="center" justifyContent="space-between">
-    //                 <Grid item xs={8}>
-    //                     <TextField
-    //                         label="Buscar en inventario"
-    //                         variant="outlined"
-    //                         fullWidth
-    //                         value={searchQuery}
-    //                         onChange={(e) => setSearchQuery(e.target.value)}
-    //                     />
-    //                 </Grid>
-    //                 <Grid item xs={2}>
-    //                     <IconButton onClick={handleSearch} color="primary">
-    //                         <SearchIcon />
-    //                     </IconButton>
-    //                 </Grid>
-    //                 <Grid item xs={2}>
-    //                     <Button
-    //                         variant="contained"
-    //                         color="primary"
-    //                         startIcon={<GetAppIcon />}
-    //                         onClick={exportInventory}
-    //                     >
-    //                         Exportar
-    //                     </Button>
-    //                 </Grid>
-    //             </Grid>
-
-    //             <TableContainer component={Paper} sx={{ marginTop: 4 }}>
-    //                 <Table>
-    //                     <TableHead>
-    //                         <TableRow>
-    //                             <TableCell>Código de Lote</TableCell>
-    //                             <TableCell>Cliente</TableCell>
-    //                             <TableCell>Cantidad</TableCell>
-    //                             <TableCell>Ubicación</TableCell>
-    //                             <TableCell>Estado</TableCell>
-    //                         </TableRow>
-    //                     </TableHead>
-    //                     <TableBody>
-    //                         {inventoryData.map((item, index) => (
-    //                             <TableRow key={index}>
-    //                                 <TableCell>{item.codigo_lote}</TableCell>
-    //                                 <TableCell>{item.cliente}</TableCell>
-    //                                 <TableCell>{item.cantidad}</TableCell>
-    //                                 <TableCell>{item.ubicacion}</TableCell>
-    //                                 <TableCell>{item.estado}</TableCell>
-    //                             </TableRow>
-    //                         ))}
-    //                     </TableBody>
-    //                 </Table>
-    //             </TableContainer>
-    //         </Box>
-    //     );
-    // };
     const renderUserContent = () => { //Se renderiza el contenido del tab 'Perfil'
         return (
-            <Box>
-                <Typography variant="h4" color="primary" gutterBottom>
-                    Perfil
-                </Typography>
-                <Typography>
-                    Aquí puedes actualizar tu información personal y preferencias.
-                </Typography>
-            </Box>
+            <div>
+                {user ? (
+                    <p>Bienvenido, {user.nombre}</p>
+                ) : (
+                    <p>Cargando información del usuario...</p>
+                )}
+            </div>
         );
     };
-    const renderConfigContent = () => { //Se renderiza el contenido del tab 'Configuración'
 
 
-    };
 
 
     const renderContent = () => {//Se controla el estado del tab
@@ -716,12 +715,11 @@ const Dashboard = () => {
             case 'inventario':
                 return <RenderInventoryContent inventoryData={inventoryData} />;
             case 'configuracion': //Se renderiza el contenido del tab 'Configuración'
-                return renderConfigContent(setSalidaData);
-            case 'dashboard': //Se renderiza el contenido del tab 'Dashboard'
-                // return renderDashboardCards();
-                return <DashboardCards cards={cards} />;
+                return <ConfigPage />;
+            case 'dashboard': // Se renderiza el contenido del tab 'Dashboard'
             default:
-                return <DashboardCards cards={cards} />;
+                return <DashboardCards cards={cards} onCardClick={handleCardClick} />;
+
         }
     };
 
@@ -731,8 +729,8 @@ const Dashboard = () => {
             <CssBaseline />
 
             {/* Barra Superior */}
-            <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>{/* Barra superior con el logo y el boton de menu */}
-                <Toolbar>{/*Aqui se definen las propiedades de la barra superior*/}
+            <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+                <Toolbar>
                     <IconButton
                         color="inherit"
                         edge="start"
@@ -744,8 +742,42 @@ const Dashboard = () => {
                     <Typography variant="h6" component="div">
                         Upper Logistics - Sistema de Gestión
                     </Typography>
+                    <Box sx={{ flexGrow: 1 }} />
+                    {/* {user && (
+                        <Typography sx={{ marginRight: 2 }}>Hola, {user.nombre}</Typography>
+                    )} */}
+                    <IconButton
+                        size="large"
+                        edge="end"
+                        aria-label="cuenta de usuario"
+                        aria-controls="menu-appbar"
+                        aria-haspopup="true"
+                        onClick={handleMenuOpen}
+                        color="inherit"
+                    >
+                        <AccountCircle />
+                    </IconButton>
+                    <Menu
+                        id="menu-appbar"
+                        anchorEl={anchorEl}
+                        anchorOrigin={{
+                            vertical: 'top',
+                            horizontal: 'right',
+                        }}
+                        keepMounted
+                        transformOrigin={{
+                            vertical: 'top',
+                            horizontal: 'right',
+                        }}
+                        open={Boolean(anchorEl)}
+                        onClose={handleMenuClose}
+                    >
+                        <MenuItem onClick={() => { handleMenuClose(); setSelectedTab('perfil'); }}>Perfil</MenuItem>
+                        <MenuItem onClick={handleMenuClose}>Cerrar sesión</MenuItem>
+                    </Menu>
                 </Toolbar>
             </AppBar>
+
             <ToastContainer />
 
             {/* Menú Lateral */}

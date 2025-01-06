@@ -1,7 +1,7 @@
 //Se crearan las rutas para las diferentes acciones que se pueden realizar en la aplicación
 const { Router } = require('express');
-const { validateLogin } = require('../controllers/login.controllers');
-const { registrarEntrada, validarLote, registrarSalida, registrarTraslado, getAreas, getClientes, entradaMovimiento, PromedioEntradas, PromedioSalidas, getEntradasSalidas, getLotes } = require('../controllers/crud.controllers');
+const { validateLogin, authenticateToken } = require('../controllers/login.controllers');
+const { registrarEntrada, validarLote, registrarSalida, registrarTraslado, getAreas, getClientes, entradaMovimiento, PromedioEntradas, PromedioSalidas, getEntradasSalidas, getLotes, getUsuarioAutenticado } = require('../controllers/crud.controllers');
 const router = Router();
 //se crean las rutas para las diferentes acciones que se pueden realizar en la aplicación
 router.post('/validateLogin', validateLogin);
@@ -20,6 +20,9 @@ router.get('/promedio-entradas', PromedioEntradas);
 router.get('/promedio-salidas', PromedioSalidas);
 router.get('/entradas-salidas', getEntradasSalidas);
 router.get('/api/lotes', getLotes);
+router.get('/usuario', authenticateToken, getUsuarioAutenticado);
+
+
 //
 
 module.exports = router;

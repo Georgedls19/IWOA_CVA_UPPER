@@ -2,8 +2,17 @@ import React, { useState } from 'react';//useState permite manejar estado de com
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../utils/style.css'; // Asume que tienes este archivo en tu proyecto
 import { useNavigate } from 'react-router-dom';
+const token = localStorage.getItem('token');
+const response = await fetch('http://localhost:4000/usuario', {
+    method: 'GET',
+    headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`, // Adjuntar el token
+    },
+});
 
 const LoginCrm = () => {
+
     const [correo, setCorreo] = useState('');
     const [clave, setClave] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
