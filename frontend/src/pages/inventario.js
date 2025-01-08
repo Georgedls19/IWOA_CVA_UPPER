@@ -1,178 +1,273 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import {
-    Box,
-    Typography,
-    Grid,
-    TextField,
-    IconButton,
-    Button,
-    TableContainer,
-    Table,
-    TableHead,
-    TableRow,
     TableCell,
-    TableBody,
-    Paper,
+    TextField,
+    Button,
+    Grid,
+    Box,
+    Select,
+    MenuItem,
+    InputLabel,
+    FormControl,
+    Checkbox,
+    Typography,
 } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import GetAppIcon from '@mui/icons-material/GetApp';
-import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
-import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 
-const RenderInventoryContent = ({ inventoryData: initialData }) => {
-    const rowsPerPage = 5; // Límite de filas por página
-    const [inventoryData, setInventoryData] = useState(initialData);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [currentPage, setCurrentPage] = useState(1);
+const Inventario = () => {
+    const [tabla, setTabla] = useState('Stock');
+    const [tipoMovimiento, setTipoMovimiento] = useState('');
+    const [datos, setDatos] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedRows, setSelectedRows] = useState([]);
+    const [currentPage, setCurrentPage] = useState(1); // Página actual
+    const rowsPerPage = 5; // Cantidad de filas por página
 
-    // Cálculo del total de páginas
-    const totalPages = Math.ceil(inventoryData.length / rowsPerPage);
-
-    // Filtra los datos que se mostrarán en la página actual
-    const currentData = inventoryData.slice(
-        (currentPage - 1) * rowsPerPage,
-        currentPage * rowsPerPage
-    );
-
-    const handleSearch = () => { // Función para buscar en el campo de búsqueda
-        const filteredData = initialData.filter(item =>
-            item.codigo_lote.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            item.cliente.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-        setInventoryData(filteredData);
-        setCurrentPage(1); // Reinicia a la primera página después de buscar
-    };
-
-    const exportInventory = () => {// Función para exportar los datos a un archivo CSV
-        const csvContent = [
-            ["Código de Lote", "Cliente", "Cantidad", "Ubicación", "Estado"],
-            ...inventoryData.map(item => [
-                item.codigo_lote,
-                item.cliente,
-                item.cantidad,
-                item.ubicacion,
-                item.estado
-            ])
-        ]
-            .map(e => e.join(","))
-            .join("\n");
-
-        const blob = new Blob([csvContent], { type: "text/csv" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "inventario.csv";
-        link.click();
-    };
-
-    const handlePageChange = async (newPage) => {
-        if (newPage >= 1 && newPage <= totalPages) {
-            setCurrentPage(newPage);
-            try {
-                const response = await fetch(`http://localhost:4000/api/lotes?page=${newPage}&limit=5`);
-                const data = await response.json();
-                setInventoryData(data.data);
-            } catch (error) {
-                console.error('Error al cambiar de página:', error);
-            }
+    const obtenerDatos = async () => {
+        try {
+            const url =
+                tabla === 'Stock'
+                    ? 'http://localhost:4000/stock-summary'
+                    : 'http://localhost:4000/reportes';
+            const respuesta = await axios.get(url);
+            setDatos(respuesta.data.data);
+        } catch (error) {
+            console.error('Error al obtener los datos:', error.message);
         }
     };
+
+    useEffect(() => {
+        obtenerDatos();
+    }, [tabla]);
+
+    const datosFiltrados = datos.filter((fila) => {
+        const coincideLoteId = fila.lote_id.toString().toLowerCase().includes(searchTerm.toLowerCase());
+        const coincideTipoMovimiento = tipoMovimiento ? fila.tipo_movimiento === tipoMovimiento : true;
+        return coincideLoteId && coincideTipoMovimiento;
+    });
+
+    const handleTablaChange = (e) => {
+        const nuevaTabla = e.target.value;
+        setTabla(nuevaTabla);
+        if (nuevaTabla === 'Stock') {
+            setTipoMovimiento('');
+        }
+        setCurrentPage(1); // Reiniciar a la primera página al cambiar de tabla
+    };
+
+    const exportarExcel = () => {
+        // Lógica para exportar datos a Excel (omitida por simplicidad).
+    };
+
+    const toggleRowSelection = (lote_id) => {
+        setSelectedRows((prev) =>
+            prev.includes(lote_id)
+                ? prev.filter((id) => id !== lote_id)
+                : [...prev, lote_id]
+        );
+    };
+
+    const eliminarFilasSeleccionadas = async () => {
+        try {
+            const response = await axios.delete('http://localhost:4000/eliminar-filas', {
+                data: { ids: selectedRows },
+            });
+            setDatos((prev) => prev.filter((fila) => !selectedRows.includes(fila.lote_id)));
+            setSelectedRows([]);
+            alert(response.data.message);
+        } catch (error) {
+            console.error('Error al eliminar filas:', error.message);
+            alert('Error al eliminar las filas');
+        }
+    };
+
+    // Obtener datos para la página actual
+    const indexOfLastRow = currentPage * rowsPerPage;
+    const indexOfFirstRow = indexOfLastRow - rowsPerPage;
+    const currentRows = datosFiltrados.slice(indexOfFirstRow, indexOfLastRow);
+
+    const totalPages = Math.ceil(datosFiltrados.length / rowsPerPage);
+
+    const handleNextPage = () => {
+        if (currentPage < totalPages) {
+            setCurrentPage((prev) => prev + 1);
+        }
+    };
+
+    const handlePreviousPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage((prev) => prev - 1);
+        }
+    };
+
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', height: '85vh', margin: '0 20px' }}>
-            <Typography variant="h4" color="primary" gutterBottom>
-                Inventario
-            </Typography>
-            <Grid container spacing={2} alignItems="center" justifyContent="space-between">
-                <Grid item xs={8}>
+        <div>
+            <h1>Inventario</h1>
+            <Grid container spacing={2} sx={{ marginBottom: '16px' }}>
+                <Grid item xs={12} sm={6} md={4}>
+                    <FormControl fullWidth>
+                        <InputLabel>Seleccionar tabla</InputLabel>
+                        <Select
+                            value={tabla}
+                            onChange={handleTablaChange}
+                            label="Seleccionar tabla"
+                            fullWidth
+                        >
+                            <MenuItem value="Stock">Stock</MenuItem>
+                            <MenuItem value="General">General</MenuItem>
+                        </Select>
+                    </FormControl>
+                </Grid>
+
+                {tabla === 'General' && (
+                    <Grid item xs={12} sm={6} md={4}>
+                        <FormControl fullWidth>
+                            <InputLabel>Tipo de movimiento</InputLabel>
+                            <Select
+                                value={tipoMovimiento}
+                                onChange={(e) => setTipoMovimiento(e.target.value)}
+                                label="Tipo de movimiento"
+                            >
+                                <MenuItem value="">Todos</MenuItem>
+                                <MenuItem value="Entrada">Entrada</MenuItem>
+                                <MenuItem value="Salida">Salida</MenuItem>
+                            </Select>
+                        </FormControl>
+                    </Grid>
+                )}
+
+                <Grid item xs={12} sm={6} md={4}>
                     <TextField
-                        label="Buscar en inventario"
+                        label="Buscar por Lote ID"
                         variant="outlined"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
                         fullWidth
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </Grid>
-                <Grid item xs={2}>
-                    <IconButton onClick={handleSearch} color="primary">
-                        <SearchIcon />
-                    </IconButton>
-                </Grid>
-                <Grid item xs={2}>
+
+                <Grid item xs={12} sm={6} md={4}>
                     <Button
                         variant="contained"
                         color="primary"
-                        startIcon={<GetAppIcon />}
-                        onClick={exportInventory}
+                        onClick={exportarExcel}
+                        fullWidth
                     >
-                        Exportar
+                        Exportar a Excel
+                    </Button>
+                </Grid>
+
+                <Grid item xs={12} sm={6} md={4}>
+                    <Button
+                        variant="contained"
+                        color="error"
+                        onClick={eliminarFilasSeleccionadas}
+                        fullWidth
+                        disabled={selectedRows.length === 0}
+                    >
+                        Eliminar Filas Seleccionadas
                     </Button>
                 </Grid>
             </Grid>
 
-            <TableContainer component={Paper} sx={{ marginTop: 4 }}>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>Código de Lote</TableCell>
-                            <TableCell>Cliente</TableCell>
-                            <TableCell>Cantidad</TableCell>
-                            <TableCell>Ubicación</TableCell>
-                            <TableCell>Estado</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {currentData.map((item, index) => (
-                            <TableRow key={index}>
-                                <TableCell>{item.codigo_lote}</TableCell>
-                                <TableCell>{item.cliente}</TableCell>
-                                <TableCell>{item.cantidad}</TableCell>
-                                <TableCell>{item.ubicacion}</TableCell>
-                                <TableCell>{item.estado}</TableCell>
-                            </TableRow>
+            <Box sx={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
+                    <thead>
+                        <tr>
+                            <TableCell style={{ backgroundColor: '#4F81BD', color: 'white', padding: '8px' }}>
+                                Seleccionar
+                            </TableCell>
+                            <TableCell style={{ backgroundColor: '#4F81BD', color: 'white', padding: '8px' }}>
+                                Lote ID
+                            </TableCell>
+                            {tabla === 'Stock' && (
+                                <>
+                                    <TableCell style={{ backgroundColor: '#4F81BD', color: 'white', padding: '8px' }}>
+                                        Total Entradas
+                                    </TableCell>
+                                    <TableCell style={{ backgroundColor: '#4F81BD', color: 'white', padding: '8px' }}>
+                                        Total Salidas
+                                    </TableCell>
+                                    <TableCell style={{ backgroundColor: '#4F81BD', color: 'white', padding: '8px' }}>
+                                        Stock Actual
+                                    </TableCell>
+                                </>
+                            )}
+                            {tabla === 'General' && (
+                                <>
+                                    <TableCell style={{ backgroundColor: '#4F81BD', color: 'white', padding: '8px' }}>
+                                        Fecha Movimiento
+                                    </TableCell>
+                                    <TableCell style={{ backgroundColor: '#4F81BD', color: 'white', padding: '8px' }}>
+                                        Tipo Movimiento
+                                    </TableCell>
+                                    <TableCell style={{ backgroundColor: '#4F81BD', color: 'white', padding: '8px' }}>
+                                        Descripción
+                                    </TableCell>
+                                    <TableCell style={{ backgroundColor: '#4F81BD', color: 'white', padding: '8px' }}>
+                                        Cantidad
+                                    </TableCell>
+                                    <TableCell style={{ backgroundColor: '#4F81BD', color: 'white', padding: '8px' }}>
+                                        Responsable
+                                    </TableCell>
+                                </>
+                            )}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {currentRows.map((fila) => (
+                            <tr key={fila.lote_id} style={{ borderBottom: '1px solid #ddd' }}>
+                                <TableCell>
+                                    <Checkbox
+                                        checked={selectedRows.includes(fila.lote_id)}
+                                        onChange={() => toggleRowSelection(fila.lote_id)}
+                                    />
+                                </TableCell>
+                                <TableCell>{fila.lote_id}</TableCell>
+                                {tabla === 'Stock' && (
+                                    <>
+                                        <TableCell>{fila.total_entradas}</TableCell>
+                                        <TableCell>{fila.total_salidas}</TableCell>
+                                        <TableCell>{fila.stock_actual}</TableCell>
+                                    </>
+                                )}
+                                {tabla === 'General' && (
+                                    <>
+                                        <TableCell>{fila.fecha_movimiento}</TableCell>
+                                        <TableCell>{fila.tipo_movimiento}</TableCell>
+                                        <TableCell>{fila.descripcion}</TableCell>
+                                        <TableCell>{fila.cantidad}</TableCell>
+                                        <TableCell>{fila.responsable}</TableCell>
+                                    </>
+                                )}
+                            </tr>
                         ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-
-            {/* Paginación */}
-            <Box
-                sx={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    marginTop: 2,
-                    gap: 1,
-                }}
-            >
-                <IconButton onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
-                    <ArrowBackIosNewIcon />
-                </IconButton>
-
-                {Array.from({ length: Math.min(7, totalPages) }, (_, i) => {//Math min devuelve el menor de los dos numeros
-                    const pageNumber =
-                        totalPages <= 7 || currentPage <= 4 // Los "||" permite 
-                            ? i + 1
-                            : Math.max(1, currentPage - 3) + i;
-
-                    if (pageNumber > totalPages) return null;
-
-                    return (
-                        <Button
-                            key={pageNumber}
-                            variant={pageNumber === currentPage ? 'contained' : 'outlined'}
-                            onClick={() => handlePageChange(pageNumber)}
-                        >
-                            {pageNumber}
-                        </Button>
-                    );
-                })}
-
-                <IconButton onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
-                    <ArrowForwardIosIcon />
-                </IconButton>
+                    </tbody>
+                </table>
+                <Box sx={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
+                    <Button
+                        variant="outlined"
+                        onClick={handlePreviousPage}
+                        disabled={currentPage === 1}
+                        sx={{ marginRight: '8px' }}
+                    >
+                        Anterior
+                    </Button>
+                    <Typography variant="body1">
+                        Página {currentPage} de {totalPages}
+                    </Typography>
+                    <Button
+                        variant="outlined"
+                        onClick={handleNextPage}
+                        disabled={currentPage === totalPages}
+                        sx={{ marginLeft: '8px' }}
+                    >
+                        Siguiente
+                    </Button>
+                </Box>
             </Box>
-        </Box>
+        </div>
     );
 };
 
-export default RenderInventoryContent;
+export default Inventario;

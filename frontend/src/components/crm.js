@@ -160,7 +160,6 @@ const Dashboard = () => {
         }
     };
 
-
     //Funciones     
     useEffect(() => {//Este useEffect se encarga de obtener las opciones de ubicaciones, áreas y clientes
         const fetchData = async () => {
@@ -326,7 +325,7 @@ const Dashboard = () => {
             const token = localStorage.getItem('token');
             if (!token) {
                 // Redirige si no hay token
-                navigate('/login');
+                navigate('/');
                 return;
             }
 
@@ -347,7 +346,7 @@ const Dashboard = () => {
             } catch (error) {
                 console.error('Error al validar el token:', error);
                 localStorage.removeItem('token'); // Eliminar token inválido
-                navigate('/login'); // Redirigir al inicio de sesión
+                navigate('/'); // Redirigir al inicio de sesión
             } finally {
                 setIsLoading(false); // Finalizar carga
             }
@@ -369,8 +368,6 @@ const Dashboard = () => {
 
         fetchCodigosUbicaciones();
     }, []);
-
-
 
     // Estado para el formulario dinámico
     const [entradaData, setEntradaData] = useState({ //aqui se guarda el estado del formulario dinámico
@@ -482,9 +479,12 @@ const Dashboard = () => {
             }
         }
     };
-    const handleSalidaFormSubmit = async (e) => {//Este método se encarga de enviar los datos al back-end
+    const handleSalidaFormSubmit = async (e) => {
         e.preventDefault();
         try {
+            // Supongamos que tienes una función para obtener el usuario autenticado
+            const usuarioAutenticado = JSON.parse(localStorage.getItem('usuarioAutenticado')) || { id: 'default_user' }; // Asegúrate de ajustar esto según cómo manejes la autenticación
+
             // Preparar los datos para la solicitud
             const salidaPayload = {
                 codigo_lote: salidaData.codigo_lote,
@@ -492,6 +492,7 @@ const Dashboard = () => {
                 cliente_id: salidaData.Cliente, // ID del cliente
                 fecha: salidaData.fecha_salida, // Fecha de salida
                 observaciones: salidaData.observaciones || '', // Observaciones opcionales
+                responsable: usuarioAutenticado.id, // Incluir el ID del usuario responsable
             };
 
             // Hacer la solicitud al servidor
@@ -506,17 +507,16 @@ const Dashboard = () => {
                 throw new Error(errorData.message || 'Error al registrar la salida');
             }
 
-            toast.success('Salida registrada con éxito',
-                {
-                    position: "top-right",
-                    autoClose: 5000,
-                    hideProgressBar: false,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    progress: undefined,
-                }
-            );
+            toast.success('Salida registrada con éxito', {
+                position: "top-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+            });
+
             // Limpiar el formulario después de registrar la salida
             setSalidaData({
                 codigo_lote: '',
@@ -525,25 +525,15 @@ const Dashboard = () => {
                 fecha_salida: '',
                 observaciones: '',
             });
-            toast.success('Salida registrada con éxito',
-                {
-                    position: "top-right",
-                    autoClose: 5000,
-                    hideProgressBar: false,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    progress: undefined,
-                }
-            );
-            addUpdate('salidas');
+
+            addUpdate('salidas'); // Actualizar vistas relacionadas si aplica
 
         } catch (error) {
             console.error('Error:', error.message);
-            // alert(`Error al registrar la salida: ${error.message}`);
             toast.error(`Error: ${error.message}`);
         }
     };
+
     const handleInputChange = async (e) => {//Esta función se encarga de manejar los cambios en los campos de entrada y salida
         const { name, value } = e.target; // Obtener el nombre y el valor del evento | target es el objeto que contiene todos los datos del evento|name es el nombre del campo y value es su valor
         setEntradaData((prevState) => ({

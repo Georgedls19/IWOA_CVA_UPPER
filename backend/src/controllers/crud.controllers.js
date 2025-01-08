@@ -1,5 +1,9 @@
+
 const { pool } = require('../db');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+
+
 // Registrar una nueva entrada
 const registrarEntrada = async (req, res) => {
     try {
@@ -77,62 +81,26 @@ const registrarEntrada = async (req, res) => {
 // Registrar una nueva salida
 const registrarSalida = async (req, res) => {
     try {
-        const { codigo_lote, cantidad, cliente_id, fecha, observaciones } = req.body;
+        const { codigo_lote, cantidad, cliente_id, fecha, observaciones, responsable } = req.body;
 
-        // Validar que todos los datos requeridos estén presentes
-        if (!codigo_lote || !cantidad || !cliente_id || !fecha) {
-            return res.status(400).json({ message: 'Faltan datos obligatorios' });
+        if (!responsable) {
+            return res.status(400).json({ message: 'El campo responsable es obligatorio.' });
         }
 
-        // Verificar si el lote existe y tiene suficiente cantidad
-        const loteResult = await pool.query(
-            'SELECT * FROM lotes WHERE codigo_lote = $1',
-            [codigo_lote]
+        await pool.query(
+            `INSERT INTO movimientos (lote_id, tipo_movimiento, descripcion, cantidad, responsable)
+             VALUES ($1, 'Salida', $2, $3, $4)`,
+            [codigo_lote, observaciones || 'Registro de salida', cantidad, responsable]
         );
 
-        if (loteResult.rows.length === 0) {
-            return res.status(404).json({ message: 'Lote no encontrado' });
-        }
-
-        const lote = loteResult.rows[0];
-
-        if (lote.cantidad < cantidad) {
-            return res.status(400).json({ message: 'Existencias insuficientes' });
-        }
-
-        // Registrar la salida en la tabla de movimientos
-        const movimientoResult = await pool.query(
-            `INSERT INTO movimientos (
-                lote_id, fecha_movimiento, tipo_movimiento, descripcion, cantidad, responsable
-            ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-            [
-                lote.id, // Se usa el ID del lote
-                fecha,
-                'Salida',
-                observaciones || 'Registro de salida',
-                cantidad,
-                cliente_id // Puede ser usado como responsable o un campo específico
-            ]
-        );
-
-        // Actualizar la cantidad en la tabla de lotes
-        const actualizarLoteResult = await pool.query(
-            'UPDATE lotes SET cantidad = cantidad - $1 WHERE id = $2 RETURNING *',
-            [cantidad, lote.id]
-        );
-
-        // Responder con el resultado
-        res.status(201).json({
-            message: 'Salida registrada con éxito',
-            movimiento: movimientoResult.rows[0],
-            loteActualizado: actualizarLoteResult.rows[0],
-        });
-
+        res.status(201).json({ message: 'Salida registrada exitosamente' });
     } catch (error) {
-        console.error("Error al registrar salida:", error.message);
-        res.status(500).json({ message: 'Error en el servidor al registrar la salida' });
+        console.error('Error al registrar salida:', error.message);
+        res.status(500).json({ message: 'Error en el servidor' });
     }
 };
+
+
 // Registrar un traslado
 const registrarTraslado = async (req, res) => {
     try {
@@ -345,52 +313,6 @@ const getLotes = async (req, res) => {
         res.status(500).json({ message: 'Error al obtener los lotes' });
     }
 };
-//
-const getUsuarioAutenticado = async (req, res) => {
-    try {
-        const { id } = req.user; // Extraer el ID del usuario del token decodificado
-        const result = await pool.query(
-            'SELECT id, correo, nombre FROM usuarios WHERE id = $1',
-            [id]
-        );
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: "Usuario no encontrado" });
-        }
-        res.json(result.rows[0]);
-    } catch (error) {
-        console.error("Error al obtener el usuario autenticado:", error.message);
-        res.status(500).json({ message: "Error en el servidor" });
-    }
-};
-const actualizarUsuario = async (req, res) => {
-    try {
-        const { id } = req.user; // ID del usuario autenticado
-        const { correo, clave, nombre } = req.body;
-
-        if (!correo || !nombre) {
-            return res.status(400).json({ message: 'Faltan datos obligatorios' });
-        }
-
-        // Si se envía una clave, incluirla en la actualización
-        const query = clave
-            ? 'UPDATE usuarios SET correo = $1, clave = $2, nombre = $3 WHERE id = $4 RETURNING *'
-            : 'UPDATE usuarios SET correo = $1, nombre = $2 WHERE id = $3 RETURNING *';
-
-        const params = clave ? [correo, clave, nombre, id] : [correo, nombre, id];
-
-        const result = await pool.query(query, params);
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'Usuario no encontrado' });
-        }
-
-        res.json({ message: 'Usuario actualizado con éxito', usuario: result.rows[0] });
-    } catch (error) {
-        console.error("Error al actualizar el usuario:", error.message);
-        res.status(500).json({ message: 'Error en el servidor al actualizar el usuario' });
-    }
-};
-
 const getUltimaActividad = async (req, res) => {
     try {
         const result = await pool.query(
@@ -475,6 +397,282 @@ const actualizarEstadoUbicacion = async (req, res) => {
     }
 };
 
+const getStockByLote = async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                lote_id,
+                SUM(CASE WHEN tipo_movimiento = 'Entrada' THEN cantidad ELSE 0 END) AS total_entradas,
+                SUM(CASE WHEN tipo_movimiento = 'Salida' THEN cantidad ELSE 0 END) AS total_salidas,
+                SUM(CASE WHEN tipo_movimiento = 'Entrada' THEN cantidad ELSE 0 END) -
+                SUM(CASE WHEN tipo_movimiento = 'Salida' THEN cantidad ELSE 0 END) AS stock_actual
+            FROM 
+                movimientos
+            GROUP BY 
+                lote_id
+            ORDER BY 
+                lote_id;
+        `;
+        const result = await pool.query(query);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: "No hay datos de lotes disponibles" });
+        }
+
+        res.json({
+            data: result.rows,
+            message: 'Datos de inventario obtenidos con éxito'
+        });
+    } catch (error) {
+        console.error("Error al obtener los datos de inventario:", error.message);
+        res.status(500).json({ message: 'Error al obtener los datos de inventario' });
+    }
+};
+const getReportes = async (req, res) => {
+    try {
+        // Consulta para obtener todos los movimientos
+        const query = `
+            SELECT lote_id, fecha_movimiento, tipo_movimiento, descripcion, cantidad, responsable
+            FROM movimientos;
+        `;
+        const result = await pool.query(query);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'No se encontraron movimientos' });
+        }
+
+        res.status(200).json({
+            data: result.rows,
+            message: 'Reportes obtenidos con éxito'
+        });
+    } catch (error) {
+        console.error('Error al obtener reportes:', error.message);
+        res.status(500).json({ message: 'Error en el servidor al obtener los reportes' });
+    }
+};
+const getMovimientos = async (req, res) => {
+
+    try {
+        const query = `
+            SELECT lote_id, fecha_movimiento, tipo_movimiento, descripcion, cantidad, responsable
+            FROM movimientos;
+        `;
+        const result = await pool.query(query);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: "No hay movimientos disponibles" });
+        }
+
+        res.json({
+            data: result.rows,
+            message: 'Movimientos obtenidos con éxito'
+        });
+    } catch (error) {
+        console.error("Error al obtener los movimientos:", error.message);
+        res.status(500).json({ message: 'Error al obtener los movimientos' });
+    }
+};
+
+const getUsuarios = async (req, res) => {
+    try {
+        const result = await pool.query('SELECT id, nombre, correo, rol FROM usuarios ORDER BY id');
+        res.status(200).json(result.rows); // Asegúrate de devolver `result.rows`, que es un arreglo
+    } catch (error) {
+        console.error('Error al obtener usuarios:', error.message);
+        res.status(500).json({ message: 'Error al obtener usuarios' });
+    }
+};
+
+
+// Crear un nuevo usuario
+const crearUsuario = async (req, res) => {
+    try {
+        const { nombre, correo, clave, rol } = req.body;
+
+        if (!nombre || !correo || !clave || !rol) {
+            return res.status(400).json({ message: 'Faltan datos obligatorios' });
+        }
+
+        // Verificar si el correo ya está registrado
+        const existeUsuario = await pool.query('SELECT * FROM usuarios WHERE correo = $1', [correo]);
+        if (existeUsuario.rows.length > 0) {
+            return res.status(409).json({ message: 'El correo ya está registrado' });
+        }
+
+        // Hashear la contraseña
+        const hashedPassword = await bcrypt.hash(clave, 10);
+
+        const result = await pool.query(
+            'INSERT INTO usuarios (nombre, correo, clave, rol) VALUES ($1, $2, $3, $4) RETURNING  nombre, correo,clave, rol',
+            [nombre, correo, clave, rol]
+        );
+
+        res.status(201).json({
+            message: 'Usuario creado con éxito',
+            usuario: result.rows[0],
+        });
+    } catch (error) {
+        console.error('Error al crear usuario:', error.message);
+        res.status(500).json({ message: 'Error al crear usuario' });
+    }
+};
+
+
+// Eliminar un usuario
+const eliminarUsuario = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({ message: 'Faltan datos obligatorios' });
+        }
+
+        const result = await pool.query('DELETE FROM usuarios WHERE id = $1 RETURNING id', [id]);
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+
+        res.status(200).json({ message: 'Usuario eliminado con éxito' });
+    } catch (error) {
+        console.error('Error al eliminar usuario:', error.message);
+        res.status(500).json({ message: 'Error al eliminar usuario' });
+    }
+};
+
+//
+const getUsuarioAutenticado = async (req, res) => {
+    try {
+        const { id } = req.user; // Extraer el ID del usuario del token decodificado
+        const result = await pool.query(
+            'SELECT id, correo, nombre FROM usuarios WHERE id = $1',
+            [id]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: "Usuario no encontrado" });
+        }
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error("Error al obtener el usuario autenticado:", error.message);
+        res.status(500).json({ message: "Error en el servidor" });
+    }
+};
+// Actualizar un usuario
+const actualizarUsuario = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { nombre, correo, clave, rol } = req.body;
+
+        if (!id || !nombre || !correo || !rol) {
+            return res.status(400).json({ message: 'Faltan datos obligatorios' });
+        }
+
+        // Construcción dinámica de la consulta
+        let query = 'UPDATE usuarios SET nombre = $1, correo = $2, rol = $3';
+        const values = [nombre, correo, rol];
+        let index = 4; // Índice para los parámetros adicionales
+
+        if (clave) {
+            const hashedPassword = await bcrypt.hash(clave, 10);
+            query += `, clave = $${index}`;
+            values.push(hashedPassword);
+            index++;
+        }
+
+        query += ` WHERE id = $${index} RETURNING id, nombre, correo, rol`;
+        values.push(id);
+
+        // Ejecutar la consulta
+        const result = await pool.query(query, values);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+
+        res.status(200).json({
+            message: 'Usuario actualizado con éxito',
+            usuario: result.rows[0],
+        });
+    } catch (error) {
+        console.error('Error al actualizar usuario:', error.message);
+        res.status(500).json({ message: 'Error al actualizar usuario' });
+    }
+};
+
+const actualizarUsuario_admin = async (req, res) => {
+    try {
+        const { id } = req.user; // ID del usuario autenticado
+        const { correo, clave, nombre, claveAntigua } = req.body;
+
+        if (!correo || !nombre) {
+            return res.status(400).json({ message: 'Faltan datos obligatorios' });
+        }
+
+        // Validar la contraseña antigua si se proporciona una nueva contraseña
+        if (clave) {
+            const usuario = await pool.query('SELECT clave FROM usuarios WHERE id = $1', [id]);
+
+            if (usuario.rows.length === 0) {
+                return res.status(404).json({ message: 'Usuario no encontrado.' });
+            }
+
+            // Comparar la contraseña antigua proporcionada con la almacenada
+            const claveValida = await bcrypt.compare(claveAntigua, usuario.rows[0].clave);
+
+            if (!claveValida) {
+                return res.status(400).json({ message: 'La contraseña antigua es incorrecta.' });
+            }
+
+            // Hashear la nueva contraseña antes de guardarla
+            const nuevaClaveHasheada = await bcrypt.hash(clave, 10);
+
+            const result = await pool.query(
+                'UPDATE usuarios SET correo = $1, clave = $2, nombre = $3 WHERE id = $4 RETURNING *',
+                [correo, nuevaClaveHasheada, nombre, id]
+            );
+
+            return res.status(200).json({
+                message: 'Usuario actualizado con éxito.',
+                usuario: result.rows[0],
+            });
+        } else {
+            const result = await pool.query(
+                'UPDATE usuarios SET correo = $1, nombre = $2 WHERE id = $3 RETURNING *',
+                [correo, nombre, id]
+            );
+
+            return res.status(200).json({
+                message: 'Usuario actualizado con éxito.',
+                usuario: result.rows[0],
+            });
+        }
+    } catch (error) {
+        console.error('Error al actualizar el usuario:', error.message);
+        res.status(500).json({ message: 'Error en el servidor al actualizar el usuario.' });
+    }
+};
+const eliminarFilas = async (req, res) => {
+    try {
+        const { ids } = req.body;
+
+        // Validar que se recibieron IDs válidos
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ message: 'No se proporcionaron IDs válidos para eliminar' });
+        }
+
+        // Ejecutar consulta para eliminar las filas
+        const result = await pool.query('DELETE FROM movimientos WHERE lote_id = ANY($1)', [ids]);
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: 'No se encontraron registros para eliminar' });
+        }
+
+        res.status(200).json({ message: 'Filas eliminadas con éxito', eliminados: result.rowCount });
+    } catch (error) {
+        console.error('Error al eliminar filas:', error.message);
+        res.status(500).json({ message: 'Error en el servidor al eliminar filas' });
+    }
+};
 
 
 module.exports = {
@@ -491,8 +689,16 @@ module.exports = {
     getLotes,
     getUsuarioAutenticado,
     actualizarUsuario,
+    actualizarUsuario_admin,
     getUltimaActividad,
     getUbicaciones,
     getCodigosUbicacionesDisponibles,
     actualizarEstadoUbicacion,
+    getStockByLote,
+    getReportes,
+    getMovimientos,
+    getUsuarios,
+    crearUsuario,
+    eliminarUsuario,
+    eliminarFilas,
 }

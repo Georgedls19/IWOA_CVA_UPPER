@@ -3,12 +3,12 @@ import { TextField, Button, Box, Typography, Container, Card, CardContent, Circu
 import { toast } from 'react-toastify';
 
 const UserProfile = ({ user, actualizarPerfil }) => {
-    const [formData, setFormData] = useState({ correo: '', clave: '', nombre: '' });
+    const [formData, setFormData] = useState({ correo: '', clave: '', nombre: '', claveAntigua: '' });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (user) {
-            setFormData({ correo: user.correo, clave: '', nombre: user.nombre });
+            setFormData({ correo: user.correo, clave: '', nombre: user.nombre, claveAntigua: '' });
             setLoading(false);
         }
     }, [user]);
@@ -18,16 +18,28 @@ const UserProfile = ({ user, actualizarPerfil }) => {
         setFormData((prevData) => ({ ...prevData, [name]: value }));
     };
 
-    const handleFormSubmit = (e) => {
+    const handleFormSubmit = async (e) => {
         e.preventDefault();
-        actualizarPerfil(formData);
+        try {
+            // Verificar que si se desea cambiar la clave, la clave antigua sea proporcionada
+            if (formData.clave && !formData.claveAntigua) {
+                toast.error("Por favor, ingresa tu contraseña antigua.");
+                return;
+            }
+
+            // Llamar al backend para actualizar el perfil
+            await actualizarPerfil(formData);
+        } catch (error) {
+            console.error("Error al actualizar el perfil:", error);
+            toast.error("Error al actualizar el perfil.");
+        }
     };
 
     return (
         <Container maxWidth="sm" sx={{ mt: 4 }}>
             <Card>
                 <CardContent>
-                    <Typography variant="h5" component="h2" gutterBottom>
+                    <Typography variant="h5" component="h2" gutterBottom color='black'>
                         Editar Perfil
                     </Typography>
                     {loading ? (
@@ -55,8 +67,17 @@ const UserProfile = ({ user, actualizarPerfil }) => {
                                 required
                             />
                             <TextField
+                                name="claveAntigua"
+                                label="Contraseña Antigua"
+                                type="password"
+                                value={formData.claveAntigua}
+                                onChange={handleInputChange}
+                                fullWidth
+                                margin="normal"
+                            />
+                            <TextField
                                 name="clave"
-                                label="Nueva Clave"
+                                label="Nueva Contraseña"
                                 type="password"
                                 value={formData.clave}
                                 onChange={handleInputChange}
@@ -64,8 +85,13 @@ const UserProfile = ({ user, actualizarPerfil }) => {
                                 margin="normal"
                             />
                             <Box sx={{ mt: 3, textAlign: 'center' }}>
-                                <Button type="submit" variant="contained" color="primary">
-                                    Guardar Cambios
+                                <Button type="submit"
+                                    variant="contained"
+                                    color="primary"
+                                    sx={{ mt: 1, mb: 2 }}
+                                // disabled={!formData.nombre || !formData.apellido || !formData.email || !formData.clave}
+                                >
+                                    Guardar
                                 </Button>
                             </Box>
                         </Box>
