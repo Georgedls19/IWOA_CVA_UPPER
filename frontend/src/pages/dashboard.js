@@ -2,16 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Box, Grid, Card, CardContent, Typography, Button } from '@mui/material';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import RackVisualization from '../services/ubicaciones';
 
+// Registro de componentes de gráficos
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const DashboardCards = ({ cards, onCardClick }) => {
-    const [barData, setBarData] = useState(null);
-    const [locations, setLocations] = useState([]);
-    const [userActivity, setUserActivity] = useState([]);
-
+    const [barData, setBarData] = useState(null); // Datos de la gráfica
+    const [lastActivity, setLastActivity] = useState(null); // Última actividad de usuario
 
     useEffect(() => {
+        // Carga de datos de la gráfica de entradas y salidas
         const fetchChartData = async () => {
             try {
                 const response = await fetch('http://localhost:4000/entradas-salidas');
@@ -37,29 +38,31 @@ const DashboardCards = ({ cards, onCardClick }) => {
             }
         };
 
-        const fetchLocations = async () => {
-            try {
-                const response = await fetch('http://localhost:4000/ubicaciones');
-                const data = await response.json();
-                setLocations(data);
-            } catch (error) {
-                console.error('Error al cargar ubicaciones:', error);
-            }
-        };
+        // Carga de la última actividad del usuario
+        const fetchLastActivity = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) return;
 
-        const fetchUserActivity = async () => {
             try {
-                const response = await fetch('http://localhost:4000/usuarios/actividad');
-                const data = await response.json();
-                setUserActivity(data);
+                const response = await fetch('http://localhost:4000/actividades/ultima', {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setLastActivity(data);
+                } else {
+                    console.error('Error al obtener la última actividad');
+                }
             } catch (error) {
-                console.error('Error al cargar actividad de usuarios:', error);
+                console.error('Error al conectar con el servidor:', error);
             }
         };
 
         fetchChartData();
-        fetchLocations();
-        fetchUserActivity();
+        fetchLastActivity();
     }, []);
 
     return (
@@ -74,7 +77,7 @@ const DashboardCards = ({ cards, onCardClick }) => {
                 width: '55%',
             }}
         >
-            {/* Cards Section */}
+            {/* Sección de Tarjetas */}
             <Grid container spacing={3} justifyContent="center">
                 {cards.map((card) => (
                     <Grid item xs={12} sm={6} md={4} key={card.id} onClick={() => onCardClick(card.id)}>
@@ -103,7 +106,7 @@ const DashboardCards = ({ cards, onCardClick }) => {
                 ))}
             </Grid>
 
-            {/* Bar Chart Section */}
+            {/* Sección de Gráfica */}
             <Box
                 sx={{
                     width: '100%',
@@ -135,13 +138,12 @@ const DashboardCards = ({ cards, onCardClick }) => {
                             },
                         }}
                     />
-
                 ) : (
                     <Typography>Cargando gráfica...</Typography>
                 )}
             </Box>
 
-            {/* Quick Actions */}
+            {/* Acciones rápidas */}
             <Box>
                 <Typography variant="h5" gutterBottom>
                     Acciones Rápidas
@@ -154,34 +156,41 @@ const DashboardCards = ({ cards, onCardClick }) => {
                 </Button>
             </Box>
 
-            {/* Last User Activity */}
+            {/* Última Actividad de Usuarios */}
             <Box>
                 <Typography variant="h5" gutterBottom>
                     Última Actividad de Usuarios
                 </Typography>
-                {userActivity.length > 0 ? (
-                    userActivity.map((activity, index) => (
-                        <Typography key={index}>
-                            {activity.usuario}: {activity.accion} en {activity.fecha}
-                        </Typography>
-                    ))
+                {lastActivity ? (
+                    <Card>
+                        <CardContent>
+                            <Typography variant="h6" component="div">
+                                Última Actividad
+                            </Typography>
+                            <Typography variant="body1" color="text.secondary">
+                                Usuario: {lastActivity.usuario}
+                            </Typography>
+                            <Typography variant="body1" color="text.secondary">
+                                Acción: {lastActivity.accion}
+                            </Typography>
+                            <Typography variant="body1" color="text.secondary">
+                                Fecha: {new Date(lastActivity.fecha).toLocaleString()}
+                            </Typography>
+                        </CardContent>
+                    </Card>
                 ) : (
-                    <Typography>No hay actividad reciente.</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        Cargando última actividad...
+                    </Typography>
                 )}
             </Box>
 
-            {/* Locations Section */}
+            {/* Visualización de Racks */}
             <Box>
                 <Typography variant="h5" gutterBottom>
                     Ubicaciones Disponibles
                 </Typography>
-                {locations.length > 0 ? (
-                    locations.map((location, index) => (
-                        <Typography key={index}>{location.nombre}</Typography>
-                    ))
-                ) : (
-                    <Typography>No hay ubicaciones disponibles.</Typography>
-                )}
+                <RackVisualization />
             </Box>
         </Box>
     );

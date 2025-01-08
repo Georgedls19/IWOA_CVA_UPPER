@@ -3,7 +3,6 @@ const jwt = require('jsonwebtoken');
 // Registrar una nueva entrada
 const registrarEntrada = async (req, res) => {
     try {
-        // Extraer todos los datos enviados en el cuerpo de la solicitud
         const {
             codigo_lote,
             ubicacion,
@@ -16,16 +15,27 @@ const registrarEntrada = async (req, res) => {
             area,
             no_proyecto,
             fecha_recepcion,
-            cantidad
+            cantidad,
         } = req.body;
-        // Validación básica para los campos principales
+
         if (!codigo_lote || !estado || !cantidad) {
             return res.status(400).json({ message: 'Faltan datos obligatorios' });
         }
-        // Llamar a la función SQL con todos los datos
+
+        // Verificar si el lote ya existe
+        const loteExistente = await pool.query(
+            'SELECT * FROM lotes WHERE codigo_lote = $1',
+            [codigo_lote]
+        );
+
+        if (loteExistente.rows.length > 0) {
+            return res.status(409).json({ message: 'El código de lote ya existe en la base de datos' });
+        }
+
+        // Insertar nuevo lote
         const result = await pool.query(
             `INSERT INTO lotes (
-                codigo_lote,                
+                codigo_lote,
                 ubicacion,
                 estado,
                 no_fabricante,
@@ -34,7 +44,7 @@ const registrarEntrada = async (req, res) => {
                 proyecto,
                 cliente,
                 area,
-                no_proyecto,            
+                no_proyecto,
                 fecha_recepcion,
                 cantidad
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
@@ -50,19 +60,20 @@ const registrarEntrada = async (req, res) => {
                 area,
                 no_proyecto,
                 fecha_recepcion,
-                cantidad
+                cantidad,
             ]
         );
-        // Devolver respuesta exitosa con todos los detalles
+
         res.status(201).json({
             message: 'Entrada registrada con éxito',
             entrada: result.rows[0],
         });
     } catch (error) {
-        console.error("Error al registrar entrada:", error.message);
+        console.error('Error al registrar entrada:', error.message);
         res.status(500).json({ message: 'Error en el servidor al registrar la entrada' });
     }
 };
+
 // Registrar una nueva salida
 const registrarSalida = async (req, res) => {
     try {
@@ -150,9 +161,10 @@ const validarLote = async (req, res) => {
         const { codigo_lote } = req.query;
         const result = await pool.query("SELECT * FROM lotes WHERE codigo_lote = $1", [codigo_lote]);
         if (result.rows.length === 0) {
-            return res.status(404).json({ message: "Lote no encontrado" });
+            return res.status(200).json(result.rows[0]);
         }
-        res.json(result.rows[0]); //Aqui se devuelve el lote
+
+        res.status(404).json({ message: 'El lote no existe' });
     } catch (error) {
         console.error("Error al buscar el lote:", error.message);
         res.status(500).json({ message: "Error al buscar el lote" });
@@ -333,7 +345,7 @@ const getLotes = async (req, res) => {
         res.status(500).json({ message: 'Error al obtener los lotes' });
     }
 };
-
+//
 const getUsuarioAutenticado = async (req, res) => {
     try {
         const { id } = req.user; // Extraer el ID del usuario del token decodificado
@@ -350,6 +362,120 @@ const getUsuarioAutenticado = async (req, res) => {
         res.status(500).json({ message: "Error en el servidor" });
     }
 };
+const actualizarUsuario = async (req, res) => {
+    try {
+        const { id } = req.user; // ID del usuario autenticado
+        const { correo, clave, nombre } = req.body;
+
+        if (!correo || !nombre) {
+            return res.status(400).json({ message: 'Faltan datos obligatorios' });
+        }
+
+        // Si se envía una clave, incluirla en la actualización
+        const query = clave
+            ? 'UPDATE usuarios SET correo = $1, clave = $2, nombre = $3 WHERE id = $4 RETURNING *'
+            : 'UPDATE usuarios SET correo = $1, nombre = $2 WHERE id = $3 RETURNING *';
+
+        const params = clave ? [correo, clave, nombre, id] : [correo, nombre, id];
+
+        const result = await pool.query(query, params);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+
+        res.json({ message: 'Usuario actualizado con éxito', usuario: result.rows[0] });
+    } catch (error) {
+        console.error("Error al actualizar el usuario:", error.message);
+        res.status(500).json({ message: 'Error en el servidor al actualizar el usuario' });
+    }
+};
+
+const getUltimaActividad = async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT 
+                u.nombre AS usuario,
+                m.tipo_movimiento AS accion,
+                m.fecha_movimiento AS fecha
+             FROM movimientos m
+             LEFT JOIN usuarios u ON m.responsable = u.id
+             WHERE m.tipo_movimiento IN ('Entrada', 'Salida', 'Traslado')
+             ORDER BY m.fecha_movimiento DESC
+             LIMIT 1`
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: "No hay actividades registradas" });
+        }
+
+        res.status(200).json(result.rows[0]);
+    } catch (error) {
+        console.error("Error al obtener la última actividad:", error.message);
+        res.status(500).json({ message: "Error en el servidor al obtener la última actividad" });
+    }
+};
+
+const getUbicaciones = async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT id, codigo, ocupado, descripcion, seccion, fila, casilla, posicion
+            FROM ubicaciones
+            ORDER BY seccion, fila, casilla, posicion
+        `);
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error('Error al obtener ubicaciones:', error.message);
+        res.status(500).json({ message: 'Error al obtener ubicaciones' });
+    }
+};
+
+const getCodigosUbicacionesDisponibles = async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT codigo 
+            FROM ubicaciones
+            WHERE ocupado = false
+        `);
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error('Error al obtener los códigos de ubicaciones disponibles:', error.message);
+        res.status(500).json({ message: 'Error al obtener los códigos de ubicaciones disponibles' });
+    }
+};
+
+const actualizarEstadoUbicacion = async (req, res) => {
+    try {
+        const { codigo } = req.params; // Obtiene el código de la ubicación desde los parámetros
+        const { ocupado } = req.body; // Obtiene el estado "ocupado" del cuerpo de la solicitud
+
+        if (ocupado === undefined) {
+            return res.status(400).json({ message: 'Falta el estado "ocupado"' });
+        }
+
+        const result = await pool.query(
+            `UPDATE ubicaciones 
+             SET ocupado = $1 
+             WHERE codigo = $2 
+             RETURNING *`,
+            [ocupado, codigo]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: 'Ubicación no encontrada' });
+        }
+
+        res.status(200).json({
+            message: 'Estado de la ubicación actualizado con éxito',
+            ubicacion: result.rows[0],
+        });
+    } catch (error) {
+        console.error('Error al actualizar el estado de la ubicación:', error.message);
+        res.status(500).json({ message: 'Error al actualizar el estado de la ubicación' });
+    }
+};
+
+
 
 module.exports = {
     registrarEntrada,
@@ -364,4 +490,9 @@ module.exports = {
     getEntradasSalidas,
     getLotes,
     getUsuarioAutenticado,
-};
+    actualizarUsuario,
+    getUltimaActividad,
+    getUbicaciones,
+    getCodigosUbicacionesDisponibles,
+    actualizarEstadoUbicacion,
+}

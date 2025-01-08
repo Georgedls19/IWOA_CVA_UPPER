@@ -1,4 +1,4 @@
-import React, { useState } from 'react'; // Importamos React
+import React, { useState, useEffect } from 'react'; // Importamos React
 import InventoryIcon from '@mui/icons-material/Inventory';
 import StorageIcon from '@mui/icons-material/Storage';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -14,7 +14,6 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { es as esLocale } from 'date-fns/locale';
 import SearchIcon from '@mui/icons-material/Search';
 import GetAppIcon from '@mui/icons-material/GetApp';
-import { useEffect } from 'react';
 import {
     Box,
     Typography,
@@ -48,15 +47,15 @@ import { set } from 'date-fns';
 //Exportacion de paginas
 import renderAlmacenContent from '../pages/almacen';
 import DashboardCards from '../pages/dashboard';
-import renderUserContent from '../pages/usuarios';
+import UserProfile from '../pages/usuarios'; // Asegúrate de usar la ruta correcta
 import RenderInventoryContent from '../pages/inventario';
 import ConfigPage from '../pages/config';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import Menu from '@mui/material/Menu';
-
-
+import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
+    const navigate = useNavigate();
     const [cards, setCards] = useState([
         { id: 1, title: 'Promedio de Entradas', content: 'Cargando...' },
         { id: 2, title: 'Promedio de Salidas', content: 'Cargando...' }, // Puedes agregar lógica para esta tarjeta
@@ -96,7 +95,70 @@ const Dashboard = () => {
         setAnchorEl(null);
     };
     const [user, setUser] = useState(null);
+    const [sessionActive, setSessionActive] = useState(true);
+    const actualizarPerfil = async (datosUsuario) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                toast.error('No estás autenticado');
+                return;
+            }
 
+            const response = await fetch('http://localhost:4000/usuario', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(datosUsuario),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Error al actualizar el perfil');
+            }
+
+            const data = await response.json();
+            toast.success(data.message);
+            setUser(data.usuario); // Actualiza la información del usuario
+        } catch (error) {
+            toast.error(`Error: ${error.message}`);
+        }
+    };
+    const handleLogout = () => {
+        setIsLoggingOut(true); // Activa la animación de cierre de sesión
+        setTimeout(() => {
+            localStorage.removeItem('token'); // Elimina el token
+            setUser(null); // Limpia la información del usuario
+            setSessionActive(false); // Marca la sesión como inactiva
+            toast.info("Has cerrado sesión."); // Muestra un mensaje de confirmación
+            navigate('/'); // Redirige a la página de inicio de sesión
+        }, 3000); // Retraso de 3 segundos
+    };
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const actualizarUbicacion = async (codigo, ocupado) => {
+        try {
+            const response = await fetch(`http://localhost:4000/ubicaciones/${codigo}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ocupado }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al actualizar la ubicación');
+            }
+
+            // Actualizar estado local
+            setUbicaciones((prev) =>
+                prev.map((ubicacion) =>
+                    ubicacion.codigo === codigo ? { ...ubicacion, ocupado } : ubicacion
+                )
+            );
+        } catch (error) {
+            console.error('Error al actualizar ubicación:', error);
+        }
+    };
 
 
     //Funciones     
@@ -246,6 +308,69 @@ const Dashboard = () => {
 
         fetchUser();
     }, [isUserLoaded]); // Dependencia para evitar múltiples llamadas
+
+    useEffect(() => {
+        if (user && sessionActive) {
+            const sessionTimer = setTimeout(() => {
+                setSessionActive(false); // Desactivar sesión
+                setUser(null); // Limpiar información del usuario
+                toast.warning("La sesión ha expirado. Inicia sesión nuevamente.");
+            }, 2700000); // 1 minuto
+
+            return () => clearTimeout(sessionTimer); // Limpiar temporizador al desmontar
+        }
+    }, [user, sessionActive]);
+    // Validar el token al montar el componente
+    useEffect(() => {// Este efecto se ejecutará cuando se cambie el usuario
+        const validateToken = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                // Redirige si no hay token
+                navigate('/login');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:4000/usuario', {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setUser(data); // Establecer usuario
+                    setSessionActive(true); // Activar la sesión
+                } else {
+                    throw new Error('Token inválido o sesión expirada');
+                }
+            } catch (error) {
+                console.error('Error al validar el token:', error);
+                localStorage.removeItem('token'); // Eliminar token inválido
+                navigate('/login'); // Redirigir al inicio de sesión
+            } finally {
+                setIsLoading(false); // Finalizar carga
+            }
+        };
+
+        validateToken();
+    }, [navigate]);
+    useEffect(() => {
+        const fetchCodigosUbicaciones = async () => {// A qui permite llamar a la función de obtener los códigos de ubicaciones disponibles
+            try {
+                const response = await fetch('http://localhost:4000/ubicaciones/codigos-disponibles');
+                if (!response.ok) throw new Error('Error al obtener los códigos de ubicaciones disponibles');
+                const data = await response.json();
+                setUbicaciones(data); // Guarda solo los códigos en el estado
+            } catch (error) {
+                console.error('Error al cargar códigos de ubicaciones disponibles:', error);
+            }
+        };
+
+        fetchCodigosUbicaciones();
+    }, []);
+
+
 
     // Estado para el formulario dinámico
     const [entradaData, setEntradaData] = useState({ //aqui se guarda el estado del formulario dinámico
@@ -412,6 +537,7 @@ const Dashboard = () => {
                 }
             );
             addUpdate('salidas');
+
         } catch (error) {
             console.error('Error:', error.message);
             // alert(`Error al registrar la salida: ${error.message}`);
@@ -445,12 +571,17 @@ const Dashboard = () => {
             console.log(`Se borró la celda ${name}`);
         }
     };
-    const handleFormSubmit = async (e) => {//Esta función se encarga de enviar los datos al servidor en la seccion de entradas  
+    const handleFormSubmit = async (e) => {
         e.preventDefault();
-
         try {
-
-            <ToastContainer /> // Este componente se usa para mostrar mensajes de error y de éxito, por predeterminado muestra un mensaje de error, para eliminar el mensaje de error se debe cambiar el estado de Error a false
+            <ToastContainer />;
+            const response = await fetch(`http://localhost:4000/lotes/validar?codigo_lote=${entradaData.codigo_lote}`);
+            if (response.ok) {
+                const loteExistente = await response.json();
+                if (loteExistente) {
+                    return toast.error('El código de lote ya existe. Por favor, use uno diferente.');
+                }
+            }
             // Registrar el lote en la tabla 'lotes'
             const loteResponse = await fetch('http://localhost:4000/almacen/registro-lote', {
                 method: 'POST',
@@ -460,19 +591,18 @@ const Dashboard = () => {
 
             if (!loteResponse.ok) {
                 throw new Error('Error al registrar el lote');
-
             }
 
             const loteData = await loteResponse.json(); // Suponiendo que devuelve el `id` del lote registrado
 
             // Registrar el movimiento en la tabla 'movimientos'
             const movimientoData = {
-                lote_id: entradaData.codigo_lote, // Usamos el `id` del lote registrado como el `lote_id`    
-                fecha_movimiento: new Date().toISOString(), // Fecha actual en formato ISO                
+                lote_id: entradaData.codigo_lote, // Usamos el `id` del lote registrado como el `lote_id`
+                fecha_movimiento: new Date().toISOString(), // Fecha actual en formato ISO
                 tipo_movimiento: 'Entrada', // Valor por defecto
                 descripcion: 'Registro de nueva entrada', // Descripción por defecto
-                cantidad: entradaData.cantidad, // Cantidad por defecto
-                responsable: "Jose", // Responsable por defecto
+                cantidad: entradaData.cantidad, // Cantidad
+                responsable: user?.nombre || 'Desconocido', // Obtiene el nombre del usuario autenticado
             };
 
             const movimientoResponse = await fetch('http://localhost:4000/movimientos', {
@@ -485,8 +615,20 @@ const Dashboard = () => {
                 throw new Error('Error al registrar el movimiento');
             }
 
+            // Actualizar el estado de la ubicación seleccionada a "ocupado"
+            const ubicacionResponse = await fetch(`http://localhost:4000/ubicaciones/ocupado/${entradaData.ubicacion}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ocupado: true }),
+            });
+
+            if (!ubicacionResponse.ok) {
+                throw new Error('Error al actualizar la ubicación');
+            }
+
             const movimientoResult = await movimientoResponse.json();
-            console.log(`Entrada registrada con Exito (Lote ID: ${loteData.id}, Movimiento ID: ${movimientoResult.id})`);
+            console.log(`Entrada registrada con éxito (Lote ID: ${loteData.id}, Movimiento ID: ${movimientoResult.id})`);
+
             // Resetea el formulario después del envío
             setEntradaData({
                 codigo_lote: "",
@@ -503,27 +645,24 @@ const Dashboard = () => {
                 cantidad: "",
             });
 
-            toast.success('Datos cargados correctamente',
-                {
-                    position: "top-right",
-                    autoClose: 3000,
-                });
+            toast.success('Datos cargados correctamente', {
+                position: "top-right",
+                autoClose: 3000,
+            });
             addUpdate('entradas');
         } catch (error) {
-            toast.error(`${error.message}`,
-                {
-                    position: "top-right",
-                    autoClose: 3000,
-                    hideProgressBar: false,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    progress: undefined,
-                }
-            );
-
+            toast.error(`${error.message}`, {
+                position: "top-right",
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+            });
         }
     };
+
     const handleTrasladoInputChange = async (e) => {
         const { name, value } = e.target;
 
@@ -584,17 +723,28 @@ const Dashboard = () => {
     };
     const handleTrasladoFormSubmit = async (e) => {
         e.preventDefault();
+
         try {
+            const trasladoPayload = {
+                ...trasladoData,
+                responsable: user?.nombre || 'Desconocido', // Incluye el nombre del usuario autenticado
+            };
+
             const response = await fetch('http://localhost:4000/traslados', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(trasladoData),
+                body: JSON.stringify(trasladoPayload),
             });
+
             if (!response.ok) {
                 throw new Error('Error al registrar el traslado');
             }
+
             const result = await response.json();
-            alert('Traslado registrado con éxito: ' + JSON.stringify(result));
+            toast.success('Traslado registrado con éxito', {
+                position: "top-right",
+                autoClose: 3000,
+            });
 
             setTrasladoData({
                 codigo_lote: '',
@@ -604,12 +754,14 @@ const Dashboard = () => {
                 area: '',
                 observaciones: '',
             });
+
             addUpdate('traslados');
         } catch (error) {
             console.error('Error al registrar el traslado:', error);
-            alert('Hubo un error al registrar el traslado');
+            toast.error('Hubo un error al registrar el traslado.');
         }
     };
+
     const handleTabChange = (tab) => { //Función que cambia el estado del tab
 
         setSelectedTab(tab);
@@ -671,23 +823,17 @@ const Dashboard = () => {
         );
     };
 
-
-    const renderUserContent = () => { //Se renderiza el contenido del tab 'Perfil'
-        return (
-            <div>
-                {user ? (
-                    <p>Bienvenido, {user.nombre}</p>
-                ) : (
-                    <p>Cargando información del usuario...</p>
-                )}
-            </div>
-        );
-    };
-
-
-
-
     const renderContent = () => {//Se controla el estado del tab
+        if (!sessionActive) {
+            return (
+                <div>
+                    <h2 color='black'>Sesión Expirada</h2>
+                    <p>Por favor, inicia sesión nuevamente.</p>
+                    navigate('/');
+                </div>
+            );
+        }
+
         switch (selectedTab) {
 
             case 'almacenes':
@@ -708,10 +854,11 @@ const Dashboard = () => {
                         fieldEntradas,  // Verifica que este objeto esté definido
                         ubicaciones,    // Verifica que esta lista esté definida
                         setSalidaData,  // Incluye también setSalidaData si se usa
+                        actualizarUbicacion
                     }
                 );
             case 'perfil': //Se renderiza el contenido del tab 'Perfil'
-                return renderUserContent();
+                return <UserProfile user={user} actualizarPerfil={actualizarPerfil} />;
             case 'inventario':
                 return <RenderInventoryContent inventoryData={inventoryData} />;
             case 'configuracion': //Se renderiza el contenido del tab 'Configuración'
@@ -723,141 +870,154 @@ const Dashboard = () => {
         }
     };
 
+    // Mostrar cargando mientras se valida el token
+    if (isLoading) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                <p>Cargando...</p>
+            </div>
+        );
+    }
+
     //En este return se renderiza el componente principal
     return (
-        <Box sx={{ display: 'flex', height: '85vh', marginLeft: "20px", marginRight: "30rem" }}> {/* Contenedor principal ocupa toda la pantalla */}
-            <CssBaseline />
+        <>
+            {/* Animación de cierre de sesión */}
+            {isLoggingOut && (
+                <div className="logout-animation">
+                    <div className="spinner"></div>
+                    <p>Cerrando sesión...</p>
+                </div>
+            )}
 
-            {/* Barra Superior */}
-            <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
-                <Toolbar>
-                    <IconButton
-                        color="inherit"
-                        edge="start"
-                        sx={{ mr: 1 }}
-                        onClick={() => setDrawerOpen(!drawerOpen)}
-                    >
-                        <MenuIcon />
-                    </IconButton>
-                    <Typography variant="h6" component="div">
-                        Upper Logistics - Sistema de Gestión
-                    </Typography>
-                    <Box sx={{ flexGrow: 1 }} />
-                    {/* {user && (
-                        <Typography sx={{ marginRight: 2 }}>Hola, {user.nombre}</Typography>
-                    )} */}
-                    <IconButton
-                        size="large"
-                        edge="end"
-                        aria-label="cuenta de usuario"
-                        aria-controls="menu-appbar"
-                        aria-haspopup="true"
-                        onClick={handleMenuOpen}
-                        color="inherit"
-                    >
-                        <AccountCircle />
-                    </IconButton>
-                    <Menu
-                        id="menu-appbar"
-                        anchorEl={anchorEl}
-                        anchorOrigin={{
-                            vertical: 'top',
-                            horizontal: 'right',
-                        }}
-                        keepMounted
-                        transformOrigin={{
-                            vertical: 'top',
-                            horizontal: 'right',
-                        }}
-                        open={Boolean(anchorEl)}
-                        onClose={handleMenuClose}
-                    >
-                        <MenuItem onClick={() => { handleMenuClose(); setSelectedTab('perfil'); }}>Perfil</MenuItem>
-                        <MenuItem onClick={handleMenuClose}>Cerrar sesión</MenuItem>
-                    </Menu>
-                </Toolbar>
-            </AppBar>
+            <Box sx={{ display: 'flex', height: '85vh', marginLeft: "20px", marginRight: "30rem" }}>
+                <CssBaseline />
 
-            <ToastContainer />
+                {/* Barra Superior */}
+                <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+                    <Toolbar>
+                        <IconButton
+                            color="inherit"
+                            edge="start"
+                            sx={{ mr: 1 }}
+                            onClick={() => setDrawerOpen(!drawerOpen)}
+                        >
+                            <MenuIcon />
+                        </IconButton>
+                        <Typography variant="h6" component="div">
+                            Upper Logistics - Sistema de Gestión
+                        </Typography>
+                        <Box sx={{ flexGrow: 1 }} />
+                        <IconButton
+                            size="large"
+                            edge="end"
+                            aria-label="cuenta de usuario"
+                            aria-controls="menu-appbar"
+                            aria-haspopup="true"
+                            onClick={sessionActive ? handleMenuOpen : null}
+                            color="inherit"
+                        >
+                            <AccountCircle />
+                        </IconButton>
+                        <Menu
+                            id="menu-appbar"
+                            anchorEl={anchorEl}
+                            anchorOrigin={{
+                                vertical: 'top',
+                                horizontal: 'right',
+                            }}
+                            keepMounted
+                            transformOrigin={{
+                                vertical: 'top',
+                                horizontal: 'right',
+                            }}
+                            open={Boolean(anchorEl)}
+                            onClose={handleMenuClose}
+                        >
+                            <MenuItem onClick={() => { handleMenuClose(); setSelectedTab('perfil'); }}>Perfil</MenuItem>
+                            <MenuItem onClick={() => { handleLogout(); handleMenuClose(); }}>Cerrar sesión</MenuItem>
+                        </Menu>
+                    </Toolbar>
+                </AppBar>
 
-            {/* Menú Lateral */}
-            <Box
-                sx={{//En esta parte se definen las propiedades del div que contiene el menú lateral
-                    width: drawerOpen ? 240 : 60,
-                    flexShrink: 0,
-                    height: '100vh',
-                    transition: 'width 0.3s ease',
-                    position: 'fixed',
-                    top: 56, // Alinea con la barra superior
-                    left: 0,
-                    bgcolor: '#f5f5f5',
-                    boxShadow: 3,
-                }}
-            >
-                <List>
-                    {[
-                        { text: 'Dashboard', icon: <DashboardIcon /> },
-                        { text: 'Almacenes', icon: <StorageIcon /> },
-                        { text: 'Inventario', icon: <InventoryIcon /> },
-                        { text: 'Perfil', icon: <PersonIcon /> },
-                        { text: 'Configuracion', icon: <SettingsIcon /> },
-                    ].map((item, index) => (
-                        <ListItem disablePadding key={index}>
-                            <ListItemButton
-                                onClick={() => handleTabChange(item.text.toLowerCase())}
-                                key={index}
-                                sx={{
-                                    bgcolor: selectedTab === item.text.toLowerCase() ? '#5499c7' : 'white',
-                                    '&:hover': { bgcolor: '#5499c7' },
-                                    transition: 'background-color 0.3s',
-                                    justifyContent: drawerOpen ? 'initial' : 'center',
-                                    height: drawerOpen ? 'auto' : '48px',
-                                    width: drawerOpen ? 'auto' : 'auto',
-                                }}
-                            >
-                                <ListItemIcon
+                <ToastContainer />
+
+                {/* Menú Lateral */}
+                <Box
+                    sx={{
+                        width: drawerOpen ? 240 : 60,
+                        flexShrink: 0,
+                        height: '100vh',
+                        transition: 'width 0.3s ease',
+                        position: 'fixed',
+                        top: 56,
+                        left: 0,
+                        bgcolor: '#f5f5f5',
+                        boxShadow: 3,
+                    }}
+                >
+                    <List>
+                        {[
+                            { text: 'Dashboard', icon: <DashboardIcon /> },
+                            { text: 'Almacenes', icon: <StorageIcon /> },
+                            { text: 'Inventario', icon: <InventoryIcon /> },
+                            { text: 'Perfil', icon: <PersonIcon /> },
+                            { text: 'Configuracion', icon: <SettingsIcon /> },
+                        ].map((item, index) => (
+                            <ListItem disablePadding key={index}>
+                                <ListItemButton
+                                    onClick={() => handleTabChange(item.text.toLowerCase())}
+                                    key={index}
                                     sx={{
-                                        minWidth: drawerOpen ? '40px' : 'unset',
-                                        justifyContent: 'center',
+                                        bgcolor: selectedTab === item.text.toLowerCase() ? '#5499c7' : 'white',
+                                        '&:hover': { bgcolor: '#5499c7' },
+                                        transition: 'background-color 0.3s',
+                                        justifyContent: drawerOpen ? 'initial' : 'center',
+                                        height: drawerOpen ? 'auto' : '48px',
+                                        width: drawerOpen ? 'auto' : 'auto',
                                     }}
                                 >
-                                    {item.icon}
-                                </ListItemIcon>
-                                <ListItemText
-                                    primary={item.text}
-                                    sx={{ display: drawerOpen ? 'block' : 'none' }} // Oculta labels si el menú está contraído
-                                />
-                            </ListItemButton>
-                        </ListItem>
-                    ))}
-                </List>
+                                    <ListItemIcon
+                                        sx={{
+                                            minWidth: drawerOpen ? '40px' : 'unset',
+                                            justifyContent: 'center',
+                                        }}
+                                    >
+                                        {item.icon}
+                                    </ListItemIcon>
+                                    <ListItemText
+                                        primary={item.text}
+                                        sx={{ display: drawerOpen ? 'block' : 'none' }}
+                                    />
+                                </ListItemButton>
+                            </ListItem>
+                        ))}
+                    </List>
+                </Box>
 
+                {/* Contenido Principal */}
+                <Box
+                    component="main"
+                    sx={{
+                        flexGrow: 1,
+                        padding: 3,
+                        backgroundColor: '#f5f5f5',
+                        height: '100vh',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        overflow: 'auto',
+                        transition: 'width 0.3s ease',
+                        marginRight: '-1200px',
+                        marginLeft: '-700px',
+                    }}
+                >
+                    {renderContent()}
+                </Box>
             </Box>
-
-            {/* Contenido Principal */}
-            <Box
-                component="main"// Se establece el componente principal
-                sx={{ // Se definen las propiedades del div que contiene el contenido
-                    flexGrow: 1,// FlexGrow: 1 permite que el contenido se expanda y se ajuste a la altura del contenedor
-                    padding: 3,
-                    backgroundColor: '#f5f5f5',
-                    height: '100vh', // Altura consistente
-                    display: 'flex', // Asegura que los elementos internos sigan un diseño consistente
-                    flexDirection: 'column',
-                    alignItems: 'center', // Centra los componentes horizontalmente
-                    overflow: 'auto', // Si el contenido excede la altura del contenedor, se puede mostrar scroll
-                    transition: 'width 0.3s ease', // Animación de transición
-                    marginRight: '-1200px',
-                    marginLeft: '-700px',
-                }}
-            >
-                {renderContent()} { /*Se manda a llamar a la función renderContent() para renderizar el contenido dependiendo del estado del tab*/}
-            </Box>
-        </Box>
-
-
-
+        </>
     );
+
 };
 
 export default Dashboard;

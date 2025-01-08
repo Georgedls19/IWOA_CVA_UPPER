@@ -113,6 +113,25 @@ const renderAlmacenContent = (
                                             </MenuItem>
                                         ))}
                                     </TextField>
+                                ) : field === 'ubicacion' ? (
+                                    <TextField
+                                        select
+                                        fullWidth
+                                        label="Ubicación Disponible"
+                                        value={entradaData.ubicacion}
+                                        onChange={(e) =>
+                                            setEntradaData({ ...entradaData, ubicacion: e.target.value })
+                                        }
+                                        height="50vh%"
+
+                                    >
+                                        {ubicaciones &&
+                                            ubicaciones.map((ubicacion) => (
+                                                <MenuItem key={ubicacion.codigo} value={ubicacion.codigo}>
+                                                    {ubicacion.codigo}
+                                                </MenuItem>
+                                            ))}
+                                    </TextField>
                                 ) : (
                                     <TextField
                                         fullWidth
@@ -163,10 +182,9 @@ const renderAlmacenContent = (
                     flexDirection: 'column',
                     alignItems: 'flex-start',
                     justifyContent: 'flex-start',
-                    marginTop: '70px',
-                    marginleft: '50px',
+                    marginTop: '100px',
                     height: '75%',
-                    width: '30%',
+                    width: '40%',
                 }}
             >
                 <Typography variant="h4" color="primary" gutterBottom>
