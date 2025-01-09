@@ -76,7 +76,7 @@ const Dashboard = () => {
         traslados: 0,
     });
     const [lastUpdateDate, setLastUpdateDate] = useState(new Date().toDateString());
-    const addUpdate = (type) => {
+    const addUpdate = (type) => { // Función para actualizar las actualizaciones recientes
         setDailyUpdates((prev) => ({
             ...prev,
             [type]: prev[type] + 1,
@@ -361,12 +361,26 @@ const Dashboard = () => {
                 if (!response.ok) throw new Error('Error al obtener los códigos de ubicaciones disponibles');
                 const data = await response.json();
                 setUbicaciones(data); // Guarda solo los códigos en el estado
+                console.log(ubicaciones); // Esto te ayudará a inspeccionar el contenido
             } catch (error) {
                 console.error('Error al cargar códigos de ubicaciones disponibles:', error);
             }
         };
-
         fetchCodigosUbicaciones();
+    }, []);
+
+    const fetchCodigosUbicaciones = async () => {
+        try {
+            const response = await fetch('http://localhost:4000/ubicaciones/codigos-disponibles');
+            const data = await response.json();
+            setUbicaciones(data); // Actualiza las ubicaciones disponibles en el estado
+        } catch (error) {
+            console.error('Error al cargar las ubicaciones disponibles:', error.message);
+        }
+    };
+
+    useEffect(() => {
+        fetchCodigosUbicaciones(); // Carga inicial de las ubicaciones disponibles
     }, []);
 
     // Estado para el formulario dinámico
@@ -410,7 +424,6 @@ const Dashboard = () => {
         codigo_lote: '',
         ubicacion_origen: '',
         ubicacion_destino: '',
-        cantidad: '',
         area: '',
         observaciones: '',
     });
@@ -482,42 +495,32 @@ const Dashboard = () => {
     const handleSalidaFormSubmit = async (e) => {
         e.preventDefault();
         try {
-            // Supongamos que tienes una función para obtener el usuario autenticado
-            const usuarioAutenticado = JSON.parse(localStorage.getItem('usuarioAutenticado')) || { id: 'default_user' }; // Asegúrate de ajustar esto según cómo manejes la autenticación
-
-            // Preparar los datos para la solicitud
-            const salidaPayload = {
-                codigo_lote: salidaData.codigo_lote,
-                cantidad: parseInt(salidaData.cantidad, 10), // Asegurarse de que sea un número
-                cliente_id: salidaData.Cliente, // ID del cliente
-                fecha: salidaData.fecha_salida, // Fecha de salida
-                observaciones: salidaData.observaciones || '', // Observaciones opcionales
-                responsable: usuarioAutenticado.id, // Incluir el ID del usuario responsable
-            };
-
-            // Hacer la solicitud al servidor
-            const response = await fetch('http://localhost:4000/almacen/registro-salida', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(salidaPayload),
-            });
-
+            const response = await fetch(`http://localhost:4000/lotes?codigo_lote=${salidaData.codigo_lote}`);
+            if (response.status === 404) {
+                toast.error('El código de lote no existe.');
+                return;
+            }
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.message || 'Error al registrar la salida');
+                throw new Error(errorData.message || 'Error al validar el lote.');
             }
-
-            toast.success('Salida registrada con éxito', {
-                position: "top-right",
-                autoClose: 5000,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
+            const salidaPayload = {
+                codigo_lote: salidaData.codigo_lote,
+                cantidad: parseInt(salidaData.cantidad, 10),
+                cliente_id: salidaData.Cliente,
+                fecha: salidaData.fecha_salida,
+                observaciones: salidaData.observaciones || '',
+            };
+            const salidaResponse = await fetch('http://localhost:4000/almacen/registro-salida', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+                body: JSON.stringify(salidaPayload),
             });
-
-            // Limpiar el formulario después de registrar la salida
+            if (!salidaResponse.ok) {
+                const errorData = await salidaResponse.json();
+                throw new Error(errorData.message || 'Error al registrar la salida.');
+            }
+            toast.success('Salida registrada con éxito.');
             setSalidaData({
                 codigo_lote: '',
                 cantidad: '',
@@ -525,14 +528,12 @@ const Dashboard = () => {
                 fecha_salida: '',
                 observaciones: '',
             });
-
-            addUpdate('salidas'); // Actualizar vistas relacionadas si aplica
-
         } catch (error) {
             console.error('Error:', error.message);
             toast.error(`Error: ${error.message}`);
         }
     };
+
 
     const handleInputChange = async (e) => {//Esta función se encarga de manejar los cambios en los campos de entrada y salida
         const { name, value } = e.target; // Obtener el nombre y el valor del evento | target es el objeto que contiene todos los datos del evento|name es el nombre del campo y value es su valor
@@ -661,6 +662,8 @@ const Dashboard = () => {
             [name]: value,
         }));
 
+        console.log(ubicaciones); // Inspecciona el estado de las ubicaciones
+
         // Si se está escribiendo en el campo "codigo_lote"
         if (name === "codigo_lote" && value) { //value es el valor del campo codigo_lote
             //Si el campo esta vacio se limpia el campo ubicacion de origen, y si se ecuentra el campo se mostrara el campo ubicacion de destino, pero si se vuelve a borrar el campo en codigo_lote se limpia el campo ubicacion de destino nuevamente
@@ -708,7 +711,6 @@ const Dashboard = () => {
                     toast.error('No se encontró información para el código de lote.');
                 }
             }
-
         }
     };
     const handleTrasladoFormSubmit = async (e) => {
@@ -717,7 +719,7 @@ const Dashboard = () => {
         try {
             const trasladoPayload = {
                 ...trasladoData,
-                responsable: user?.nombre || 'Desconocido', // Incluye el nombre del usuario autenticado
+                responsable: user?.nombre || 'Desconocido',
             };
 
             const response = await fetch('http://localhost:4000/traslados', {
@@ -727,15 +729,14 @@ const Dashboard = () => {
             });
 
             if (!response.ok) {
-                throw new Error('Error al registrar el traslado');
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Error al registrar el traslado');
             }
 
-            const result = await response.json();
-            toast.success('Traslado registrado con éxito', {
-                position: "top-right",
-                autoClose: 3000,
-            });
+            toast.success('Traslado registrado con éxito');
+            addUpdate('traslados');
 
+            // Limpia el formulario
             setTrasladoData({
                 codigo_lote: '',
                 ubicacion_origen: '',
@@ -745,12 +746,14 @@ const Dashboard = () => {
                 observaciones: '',
             });
 
-            addUpdate('traslados');
         } catch (error) {
             console.error('Error al registrar el traslado:', error);
-            toast.error('Hubo un error al registrar el traslado.');
+            toast.error(`Error: ${error.message}`);
         }
     };
+
+
+
 
     const handleTabChange = (tab) => { //Función que cambia el estado del tab
 
@@ -850,7 +853,7 @@ const Dashboard = () => {
             case 'perfil': //Se renderiza el contenido del tab 'Perfil'
                 return <UserProfile user={user} actualizarPerfil={actualizarPerfil} />;
             case 'inventario':
-                return <RenderInventoryContent inventoryData={inventoryData} />;
+                return <RenderInventoryContent inventoryData={inventoryData} ubicaciones={ubicaciones} fetchCodigosUbicaciones={fetchCodigosUbicaciones} />;
             case 'configuracion': //Se renderiza el contenido del tab 'Configuración'
                 return <ConfigPage />;
             case 'dashboard': // Se renderiza el contenido del tab 'Dashboard'

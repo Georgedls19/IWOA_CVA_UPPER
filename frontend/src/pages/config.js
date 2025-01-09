@@ -132,8 +132,33 @@ const ConfigPage = () => {
     }, []);
 
     return (
-        <Box sx={{ padding: 4 }}>
-            <Typography variant="h4" gutterBottom>
+        <Box
+            sx={{
+                padding: '2rem',
+                margin: '1rem auto',
+                width: '60%',
+                maxWidth: '1200px',
+            }}
+
+
+        >
+            <Typography
+                variant="h5"
+                gutterBottom
+                sx={{
+                    color: '#2c3e50', // Color elegante y profesional
+                    fontWeight: 'bold', // Texto más prominente
+                    letterSpacing: '0.2em', // Espaciado para darle más estilo
+                    textTransform: 'uppercase', // Todo en mayúsculas para un encabezado llamativo
+                    textShadow: '2px 2px 5px rgba(0, 0, 0, 0.2)', // Sombra suave para mayor impacto                    
+                    background: 'black', // Gradiente suave
+                    WebkitBackgroundClip: 'text', // Usamos el gradiente como color del texto
+                    WebkitTextFillColor: 'transparent', // Hacemos que el fondo rellene el texto
+                    marginLeft: '1rem',
+                    marginBottom: '2rem',
+                }}
+
+            >
                 Configuración
             </Typography>
 

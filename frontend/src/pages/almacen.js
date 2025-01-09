@@ -11,6 +11,9 @@ import {
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { es as esLocale } from 'date-fns/locale';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import ExitToAppIcon from '@mui/icons-material/ExitToApp';
+import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 
 // Define la función y exporta
 const renderAlmacenContent = (
@@ -313,24 +316,23 @@ const renderAlmacenContent = (
                                 fullWidth
                                 name="ubicacion_origen"
                                 value={trasladoData.ubicacion_origen}
-                                onChange={handleTrasladoInputChange}
-                                disabled // Deshabilitar edición manual
+                                disabled
                             />
                         </Grid>
-
                         <Grid item xs={12} sm={6}>
                             <TextField
+                                select
                                 label="Ubicación de Destino"
-                                variant="outlined"//variant permite el color de la letra outlined es el de la paleta de colores de material-ui
+                                variant="outlined"
                                 fullWidth
                                 name="ubicacion_destino"
-                                value={trasladoData.ubicacion_destino}
+                                value={trasladoData.ubicacion_destino || ''}
                                 onChange={handleTrasladoInputChange}
                                 required
                             >
                                 {ubicaciones.map((ubicacion) => (
-                                    <MenuItem key={ubicacion.id} value={ubicacion.id}>
-                                        {ubicacion.nombre}
+                                    <MenuItem key={ubicacion.codigo} value={ubicacion.codigo}>
+                                        {ubicacion.codigo}
                                     </MenuItem>
                                 ))}
                             </TextField>
@@ -338,24 +340,18 @@ const renderAlmacenContent = (
                         <Grid item xs={12} sm={6}>
                             <TextField
                                 select
-                                label="Area"
+                                label="Área"
                                 variant="outlined"
                                 fullWidth
-                                type="text"
                                 name="area"
-                                value={entradaData.area}
-                                onChange={(e) => (
-                                    setEntradaData({ ...entradaData, area: e.target.value })
-
-                                )}
-                                required
+                                value={trasladoData.area}
+                                onChange={handleTrasladoInputChange}
                             >
                                 {areas.map((area) => (
                                     <MenuItem key={area.id} value={area.id}>
                                         {area.nombre_area}
                                     </MenuItem>
                                 ))}
-
                             </TextField>
                         </Grid>
                         <Grid item xs={12} sm={6}>
@@ -371,7 +367,6 @@ const renderAlmacenContent = (
                             />
                         </Grid>
                     </Grid>
-
                     <Box mt={3} display="flex" justifyContent="center">
                         <Button type="submit" variant="contained" color="primary">
                             Registrar Traslado
@@ -381,9 +376,34 @@ const renderAlmacenContent = (
             </Box>
         );
     }
+
     return (
-        <Box>
-            <Typography variant="h4" color="primary" gutterBottom>
+        <Box
+            sx={{
+                padding: '2rem',
+                margin: '1rem auto',
+                width: '60%',
+                maxWidth: '1200px',
+            }}
+
+        >
+            <Typography
+                variant="h5"
+                gutterBottom
+                sx={{
+                    color: '#2c3e50', // Color elegante y profesional
+                    fontWeight: 'bold', // Texto más prominente
+                    letterSpacing: '0.2em', // Espaciado para darle más estilo
+                    textTransform: 'uppercase', // Todo en mayúsculas para un encabezado llamativo
+                    textShadow: '2px 2px 5px rgba(0, 0, 0, 0.2)', // Sombra suave para mayor impacto                    
+                    background: 'black', // Gradiente suave
+                    WebkitBackgroundClip: 'text', // Usamos el gradiente como color del texto
+                    WebkitTextFillColor: 'transparent', // Hacemos que el fondo rellene el texto
+                    marginLeft: '1rem',
+                    marginBottom: '2rem',
+                }}
+
+            >
                 Almacenes
             </Typography>
             <Typography variant="body1" gutterBottom>
@@ -394,19 +414,19 @@ const renderAlmacenContent = (
                     {
                         title: 'Entradas',
                         description: 'Registrar nuevas entradas',
-                        image: '/path/to/entradas_image.png', // Ruta de la imagen para Entradas
+                        icon: <AddCircleOutlineIcon sx={{ fontSize: 40, color: '#1976d2' }} />,
                         action: () => handleAlmacenViewChange('entradas'),
                     },
                     {
                         title: 'Salidas',
                         description: 'Registrar salidas de productos',
-                        image: '/path/to/salidas_image.png', // Ruta de la imagen para Salidas
+                        icon: <ExitToAppIcon sx={{ fontSize: 40, color: '#d32f2f' }} />,
                         action: () => handleAlmacenViewChange('salidas'),
                     },
                     {
                         title: 'Traslados',
                         description: 'Gestionar traslados entre almacenes',
-                        image: '/path/to/traslados_image.png', // Ruta de la imagen para Traslados
+                        icon: <CompareArrowsIcon sx={{ fontSize: 40, color: '#388e3c' }} />,
                         action: () => handleAlmacenViewChange('traslados'),
                     },
                 ].map((item, index) => (
@@ -430,13 +450,8 @@ const renderAlmacenContent = (
                                 },
                             }}
                         >
-                            <Box
-                                component="img"
-                                src={item.image}
-                                alt={`${item.title} image`}
-                                sx={{ height: 100, marginBottom: 2 }}
 
-                            />
+                            {item.icon}
                             <Typography variant="h6" gutterBottom>
                                 {item.title}
                             </Typography>

@@ -12,14 +12,21 @@ import {
     FormControl,
     Checkbox,
     Typography,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
 } from '@mui/material';
+import { toast } from 'react-toastify';
 
-const Inventario = () => {
+const Inventario = (fetchCodigosUbicaciones) => {
     const [tabla, setTabla] = useState('Stock');
     const [tipoMovimiento, setTipoMovimiento] = useState('');
     const [datos, setDatos] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedRows, setSelectedRows] = useState([]);
+    const [confirmOpen, setConfirmOpen] = useState(false); // Controla el diálogo de confirmación
+    const [rowsWithStock, setRowsWithStock] = useState([]); // Filas con stock mayor a cero
     const [currentPage, setCurrentPage] = useState(1); // Página actual
     const rowsPerPage = 5; // Cantidad de filas por página
 
@@ -69,19 +76,72 @@ const Inventario = () => {
 
     const eliminarFilasSeleccionadas = async () => {
         try {
-            const response = await axios.delete('http://localhost:4000/eliminar-filas', {
-                data: { ids: selectedRows },
-            });
-            setDatos((prev) => prev.filter((fila) => !selectedRows.includes(fila.lote_id)));
+            // Filtrar las filas seleccionadas
+            const filasAEliminar = datos.filter((fila) =>
+                selectedRows.includes(fila.lote_id)
+            );
+
+            // Identificar filas con stock mayor a 0
+            const filasConStock = filasAEliminar.filter(
+                (fila) => fila.stock_actual > 0
+            );
+
+            if (filasConStock.length > 0) {
+                // Guardar filas con stock para mostrar confirmación
+                setRowsWithStock(filasConStock);
+                setConfirmOpen(true); // Abrir diálogo de confirmación
+                return;
+            }
+
+            // Obtener IDs de las filas seleccionadas que no tienen stock
+            const idsSinStock = filasAEliminar.map((fila) => fila.lote_id);
+
+            // Eliminar directamente las filas sin stock
+            await eliminarFilas(idsSinStock);
+
+            // Limpiar la selección y mostrar mensaje
             setSelectedRows([]);
-            alert(response.data.message);
+            toast.success('Filas eliminadas con éxito.');
         } catch (error) {
-            console.error('Error al eliminar filas:', error.message);
-            alert('Error al eliminar las filas');
+            console.error('Error al intentar eliminar filas:', error.message);
+            toast.error('Error al eliminar filas.');
         }
     };
 
-    // Obtener datos para la página actual
+
+
+    const eliminarFilas = async (ids) => {
+        try {
+            const response = await axios.delete('http://localhost:4000/eliminar-filas', {
+                data: { ids },
+            });
+
+            if (!response.ok) {
+                toast.error(response.data.message);
+                return;
+            }
+
+            setDatos((prev) => prev.filter((fila) => !ids.includes(fila.lote_id)));
+            setSelectedRows([]);
+            toast.success(response.data.message);
+
+            // Actualizar las ubicaciones disponibles tras eliminar filas
+            await fetchCodigosUbicaciones(); // Llama a esta función para actualizar las ubicaciones
+        } catch (error) {
+            // console.error('Error al eliminar filas:', error.message);
+            toast.error(`Error al eliminar las filas ${error.message}`);
+
+        }
+    };
+
+
+    const handleConfirmDelete = async () => {
+        // Eliminar filas con stock después de la confirmación
+        await eliminarFilas(rowsWithStock.map((fila) => fila.lote_id));
+        setConfirmOpen(false); // Cerrar el diálogo de confirmación
+        setRowsWithStock([]); // Limpiar filas con stock
+    };
+
     const indexOfLastRow = currentPage * rowsPerPage;
     const indexOfFirstRow = indexOfLastRow - rowsPerPage;
     const currentRows = datosFiltrados.slice(indexOfFirstRow, indexOfLastRow);
@@ -101,8 +161,35 @@ const Inventario = () => {
     };
 
     return (
-        <div>
-            <h1>Inventario</h1>
+        <Box
+            sx={{
+                padding: '2rem',
+                margin: '1rem auto',
+                width: '60%',
+                maxWidth: '1200px',
+            }}
+
+
+        >
+
+
+            <Box
+                variant="h5"
+                gutterBottom
+                sx={{
+                    color: '#2c3e50', // Color elegante y profesional
+                    fontWeight: 'bold', // Texto más prominente
+                    letterSpacing: '0.2em', // Espaciado para darle más estilo
+                    textTransform: 'uppercase', // Todo en mayúsculas para un encabezado llamativo
+                    textShadow: '2px 2px 5px rgba(0, 0, 0, 0.2)', // Sombra suave para mayor impacto                    
+                    background: 'black', // Gradiente suave
+                    WebkitBackgroundClip: 'text', // Usamos el gradiente como color del texto
+                    WebkitTextFillColor: 'transparent', // Hacemos que el fondo rellene el texto
+                    marginLeft: '1rem',
+                    marginBottom: '2rem',
+                }}
+            >Inventario</Box>
+
             <Grid container spacing={2} sx={{ marginBottom: '16px' }}>
                 <Grid item xs={12} sm={6} md={4}>
                     <FormControl fullWidth>
@@ -266,7 +353,29 @@ const Inventario = () => {
                     </Button>
                 </Box>
             </Box>
-        </div>
+
+            {/* Diálogo de confirmación */}
+            <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+                <DialogTitle>Filas con stock</DialogTitle>
+                <DialogContent>
+                    <Typography>
+                        Hay filas con stock mayor a 0. ¿Deseas continuar con la eliminación?
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setConfirmOpen(false)} color="primary">
+                        Cancelar
+                    </Button>
+                    <Button
+                        onClick={handleConfirmDelete}
+                        color="error"
+                        variant="contained"
+                    >
+                        Eliminar
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </Box>
     );
 };
 

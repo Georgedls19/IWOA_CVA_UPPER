@@ -36,7 +36,29 @@ const UserProfile = ({ user, actualizarPerfil }) => {
     };
 
     return (
-        <Container maxWidth="sm" sx={{ mt: 4 }}>
+        <Container sx={{
+            padding: '2rem',
+            margin: '1rem auto',
+            width: '60%',
+            maxWidth: '1200px',
+        }}
+        >
+            <Box><Typography
+                variant="h5"
+                gutterBottom
+                sx={{
+                    marginBottom: '1rem',
+                    color: '#2c3e50', // Color elegante y profesional
+                    fontWeight: 'bold', // Texto más prominente
+                    letterSpacing: '0.2em', // Espaciado para darle más estilo
+                    textTransform: 'uppercase', // Todo en mayúsculas para un encabezado llamativo
+                    textShadow: '2px 2px 5px rgba(0, 0, 0, 0.2)', // Sombra suave para mayor impacto                    
+                    background: 'black', // Gradiente suave
+                    WebkitBackgroundClip: 'text', // Usamos el gradiente como color del texto
+                    WebkitTextFillColor: 'transparent', // Hacemos que el fondo rellene el texto
+                }}
+
+            >Perfil</Typography></Box>
             <Card>
                 <CardContent>
                     <Typography variant="h5" component="h2" gutterBottom color='black'>

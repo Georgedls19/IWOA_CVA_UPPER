@@ -39,7 +39,7 @@ router.get('/areas', getAreas);
 router.get('/clientes', getClientes);
 
 router.post('/almacen/registro-salida', registrarSalida);//El put es para actualizar un usuario, el post es para crear un nuevo usuario, el delete es para eliminar un usuario
-router.post('/almacen/registro-traslado', registrarTraslado);//El put es para actualizar un usuario, el post es para crear un nuevo usuario, el delete es para eliminar un usuario
+router.post('/traslados', registrarTraslado);//El put es para actualizar un usuario, el post es para crear un nuevo usuario, el delete es para eliminar un usuario
 router.get('/lotes', validarLote);//El put es para actualizar un usuario, el post es para crear un nuevo usuario, el delete es para eliminar un usuario
 router.get('/promedio-entradas', PromedioEntradas);
 router.get('/promedio-salidas', PromedioSalidas);

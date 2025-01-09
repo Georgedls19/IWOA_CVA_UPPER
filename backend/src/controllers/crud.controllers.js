@@ -81,63 +81,130 @@ const registrarEntrada = async (req, res) => {
 // Registrar una nueva salida
 const registrarSalida = async (req, res) => {
     try {
-        const { codigo_lote, cantidad, cliente_id, fecha, observaciones, responsable } = req.body;
+        const { codigo_lote, cantidad, cliente_id, fecha, observaciones } = req.body;
 
-        if (!responsable) {
-            return res.status(400).json({ message: 'El campo responsable es obligatorio.' });
+        // Verificar si se proporcionaron todos los datos necesarios
+        if (!codigo_lote || !cantidad || !cliente_id || !fecha) {
+            return res.status(400).json({ message: 'Faltan datos obligatorios.' });
         }
 
+        // Verificar si el lote existe
+        const loteExistente = await pool.query("SELECT cantidad FROM lotes WHERE codigo_lote = $1", [codigo_lote]);
+        if (loteExistente.rows.length === 0) {
+            return res.status(404).json({ message: 'El lote no existe.' });
+        }
+
+        const stockActual = loteExistente.rows[0].cantidad;
+
+        // Verificar si el stock es suficiente para realizar la salida
+        if (stockActual < cantidad) {
+            return res.status(400).json({
+                message: `Stock insuficiente. Cantidad disponible: ${stockActual}, cantidad solicitada: ${cantidad}.`,
+            });
+        }
+
+        // Registrar el movimiento de salida
         await pool.query(
-            `INSERT INTO movimientos (lote_id, tipo_movimiento, descripcion, cantidad, responsable)
-             VALUES ($1, 'Salida', $2, $3, $4)`,
-            [codigo_lote, observaciones || 'Registro de salida', cantidad, responsable]
+            `INSERT INTO movimientos (lote_id, tipo_movimiento, descripcion, cantidad, responsable, fecha_movimiento)
+             VALUES ($1, 'Salida', $2, $3, $4, $5)`,
+            [codigo_lote, observaciones || 'Registro de salida', cantidad, req.user?.nombre || 'Desconocido', fecha]
         );
 
-        res.status(201).json({ message: 'Salida registrada exitosamente' });
+        // Actualizar el stock del lote
+        await pool.query(
+            "UPDATE lotes SET cantidad = cantidad - $1 WHERE codigo_lote = $2",
+            [cantidad, codigo_lote]
+        );
+
+        res.status(201).json({ message: 'Salida registrada exitosamente.' });
     } catch (error) {
         console.error('Error al registrar salida:', error.message);
-        res.status(500).json({ message: 'Error en el servidor' });
+        res.status(500).json({ message: 'Error en el servidor.' });
     }
 };
-
 
 // Registrar un traslado
 const registrarTraslado = async (req, res) => {
+    const { codigo_lote, ubicacion_origen, ubicacion_destino, cantidad, observaciones, responsable } = req.body;
+
     try {
-        const { codigo_lote, cantidad, ubicacion_origen, ubicacion_destino, fecha, responsable } = req.body;
-
-        if (!codigo_lote || !cantidad || !ubicacion_origen || !ubicacion_destino || !fecha) {
-            return res.status(400).json({ message: 'Faltan datos obligatorios' });
-        }
-
-        const result = await pool.query(
-            `SELECT registrar_traslado($1, $2, $3, $4, $5, $6)`,
-            [codigo_lote, cantidad, ubicacion_origen, ubicacion_destino, fecha, responsable || null]
+        // Verificar si el lote existe
+        const lote = await pool.query(
+            `SELECT * FROM lotes WHERE codigo_lote = $1`,
+            [codigo_lote]
         );
 
-        res.status(201).json({
+        if (lote.rowCount === 0) {
+            return res.status(404).json({ message: 'Lote no encontrado' });
+        }
+
+        // Verificar que la ubicación de origen coincida
+        if (lote.rows[0].ubicacion !== ubicacion_origen) {
+            return res.status(400).json({ message: 'La ubicación de origen no coincide con la ubicación actual del lote' });
+        }
+
+        // Actualizar estado de las ubicaciones
+        await pool.query(
+            `UPDATE ubicaciones SET ocupado = false WHERE codigo = $1`,
+            [ubicacion_origen]
+        );
+        await pool.query(
+            `UPDATE ubicaciones SET ocupado = true WHERE codigo = $1`,
+            [ubicacion_destino]
+        );
+
+        // Actualizar la ubicación del lote
+        const updatedLote = await pool.query(
+            `UPDATE lotes SET ubicacion = $1 WHERE codigo_lote = $2::text RETURNING *`,
+            [ubicacion_destino, codigo_lote]
+        );
+
+        // Enviar el lote actualizado al cliente
+        res.status(200).json({
             message: 'Traslado registrado con éxito',
-            result: result.rows[0],
+            lote: updatedLote.rows[0],
+            movimiento: movimiento.rows[0],
         });
+        console.log("ubicacion_destino:", ubicacion_destino);
+        console.log("codigo_lote:", codigo_lote);
+
+        codigo_lote = "";
+        ubicacion_destino = "";
+        cantidad = "";
+        area = "";
+        observaciones = "";
+        responsable = "";
+        fecha_movimiento = "";
+
     } catch (error) {
-        console.error("Error al registrar traslado:", error.message);
-        res.status(500).json({ message: 'Error en el servidor al registrar el traslado' });
+        console.error('Error al registrar el traslado:', error.message);
+        res.status(500).json({ message: 'Error interno del servidor' });
+        console.log("ubicacion_destino:", ubicacion_destino);
+        console.log("codigo_lote:", codigo_lote);
     }
 };
+
 const validarLote = async (req, res) => {
     try {
         const { codigo_lote } = req.query;
-        const result = await pool.query("SELECT * FROM lotes WHERE codigo_lote = $1", [codigo_lote]);
-        if (result.rows.length === 0) {
-            return res.status(200).json(result.rows[0]);
+
+        if (!codigo_lote) {
+            return res.status(400).json({ message: 'El código de lote es obligatorio.' });
         }
 
-        res.status(404).json({ message: 'El lote no existe' });
+        const result = await pool.query("SELECT * FROM lotes WHERE codigo_lote = $1", [codigo_lote]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'El lote no existe' });
+        }
+
+        res.status(200).json(result.rows[0]); // Devuelve el lote encontrado
     } catch (error) {
         console.error("Error al buscar el lote:", error.message);
-        res.status(500).json({ message: "Error al buscar el lote" });
+        res.status(500).json({ message: "Error en el servidor al buscar el lote" });
     }
 };
+
 const getAreas = async (req, res) => {
     //en esta funcion se obtendran todos los nombre de las areas
     try {
@@ -655,20 +722,53 @@ const eliminarFilas = async (req, res) => {
     try {
         const { ids } = req.body;
 
-        // Validar que se recibieron IDs válidos
         if (!ids || !Array.isArray(ids) || ids.length === 0) {
             return res.status(400).json({ message: 'No se proporcionaron IDs válidos para eliminar' });
         }
 
-        // Ejecutar consulta para eliminar las filas
-        const result = await pool.query('DELETE FROM movimientos WHERE lote_id = ANY($1)', [ids]);
+        // Inicia una transacción
+        await pool.query('BEGIN');
 
-        if (result.rowCount === 0) {
-            return res.status(404).json({ message: 'No se encontraron registros para eliminar' });
-        }
+        // Obtener las ubicaciones asociadas a los lotes que se eliminarán
+        const ubicacionesQuery = await pool.query(
+            `SELECT DISTINCT ubicacion FROM lotes WHERE codigo_lote = ANY($1)`,
+            [ids]
+        );
 
-        res.status(200).json({ message: 'Filas eliminadas con éxito', eliminados: result.rowCount });
+        const ubicaciones = ubicacionesQuery.rows.map((row) => row.ubicacion);
+
+        // Eliminar filas de la tabla "movimientos"
+        const movimientosResult = await pool.query(
+            `DELETE FROM movimientos WHERE lote_id = ANY($1)`,
+            [ids]
+        );
+
+        // Eliminar filas de la tabla "lotes"
+        const lotesResult = await pool.query(
+            `DELETE FROM lotes WHERE codigo_lote = ANY($1)`,
+            [ids]
+        );
+
+        // Actualizar las ubicaciones asociadas a "disponible" (ocupado: false)
+        await pool.query(
+            `UPDATE ubicaciones SET ocupado = false WHERE codigo = ANY($1)`,
+            [ubicaciones]
+        );
+
+        // Confirma la transacción
+        await pool.query('COMMIT');
+
+        res.status(200).json({
+            message: 'Filas eliminadas y ubicaciones actualizadas con éxito',
+            eliminados: {
+                movimientos: movimientosResult.rowCount,
+                lotes: lotesResult.rowCount,
+            },
+        });
+
     } catch (error) {
+        // Revierte la transacción en caso de error
+        await pool.query('ROLLBACK');
         console.error('Error al eliminar filas:', error.message);
         res.status(500).json({ message: 'Error en el servidor al eliminar filas' });
     }
