@@ -408,9 +408,20 @@ const getUltimaActividad = async (req, res) => {
 const getUbicaciones = async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT id, codigo, ocupado, descripcion, seccion, fila, casilla, posicion
-            FROM ubicaciones
-            ORDER BY seccion, fila, casilla, posicion
+            SELECT 
+                u.id, 
+                u.codigo, 
+                u.ocupado, 
+                u.seccion, 
+                u.fila, 
+                u.casilla, 
+                u.posicion,
+                l.modelo_sku AS sku,
+                l.codigo_lote,
+                l.proyecto
+            FROM ubicaciones u
+            LEFT JOIN lotes l ON u.codigo = l.ubicacion
+            ORDER BY u.seccion, u.fila, u.casilla, u.posicion
         `);
         res.status(200).json(result.rows);
     } catch (error) {
@@ -418,7 +429,6 @@ const getUbicaciones = async (req, res) => {
         res.status(500).json({ message: 'Error al obtener ubicaciones' });
     }
 };
-
 const getCodigosUbicacionesDisponibles = async (req, res) => {
     try {
         const result = await pool.query(`

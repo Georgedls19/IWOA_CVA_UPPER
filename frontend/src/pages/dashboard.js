@@ -184,7 +184,7 @@ const DashboardCards = ({ cards, onCardClick }) => {
                         mt={2}
                         sx={{
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
+                            gridTemplateColumns: 'repeat(7, 1fr)', // Exactamente 7 columnas por fila
                             gap: '10px',
                         }}
                     >
@@ -195,13 +195,13 @@ const DashboardCards = ({ cards, onCardClick }) => {
                                     ubicacion.ocupado ? (
                                         <Box>
                                             <Typography variant="body2">
-                                                <strong>SKU:</strong> {ubicacion.modelo_sku}
+                                                <strong>SKU:</strong> {ubicacion.sku || 'N/A'}
                                             </Typography>
                                             <Typography variant="body2">
-                                                <strong>Código Lote:</strong> {ubicacion.codigo_lote}
+                                                <strong>Código Lote:</strong> {ubicacion.codigo_lote || 'N/A'}
                                             </Typography>
                                             <Typography variant="body2">
-                                                <strong>Proyecto:</strong> {ubicacion.proyecto}
+                                                <strong>Proyecto:</strong> {ubicacion.proyecto || 'N/A'}
                                             </Typography>
                                         </Box>
                                     ) : (
@@ -231,6 +231,7 @@ const DashboardCards = ({ cards, onCardClick }) => {
                         ))}
                     </Box>
                 )}
+
             </Box>
         </Box>
     );
