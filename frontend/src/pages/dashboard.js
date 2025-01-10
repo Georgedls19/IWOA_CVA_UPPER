@@ -37,7 +37,6 @@ const DashboardCards = ({ cards, onCardClick }) => {
                 console.error('Error al cargar datos de la gráfica:', error);
             }
         };
-
         const fetchUbicaciones = async () => {
             try {
                 const response = await fetch('http://localhost:4000/ubicaciones');
@@ -47,7 +46,6 @@ const DashboardCards = ({ cards, onCardClick }) => {
                 console.error('Error al cargar ubicaciones:', error);
             }
         };
-
         fetchChartData();
         fetchUbicaciones();
     }, []);

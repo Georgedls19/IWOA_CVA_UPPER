@@ -539,7 +539,6 @@ const getMovimientos = async (req, res) => {
         res.status(500).json({ message: 'Error al obtener los movimientos' });
     }
 };
-
 const getUsuarios = async (req, res) => {
     try {
         const result = await pool.query('SELECT id, nombre, correo, rol FROM usuarios ORDER BY id');
@@ -549,8 +548,6 @@ const getUsuarios = async (req, res) => {
         res.status(500).json({ message: 'Error al obtener usuarios' });
     }
 };
-
-
 // Crear un nuevo usuario
 const crearUsuario = async (req, res) => {
     try {
@@ -583,8 +580,6 @@ const crearUsuario = async (req, res) => {
         res.status(500).json({ message: 'Error al crear usuario' });
     }
 };
-
-
 // Eliminar un usuario
 const eliminarUsuario = async (req, res) => {
     try {
@@ -606,7 +601,6 @@ const eliminarUsuario = async (req, res) => {
         res.status(500).json({ message: 'Error al eliminar usuario' });
     }
 };
-
 //
 const getUsuarioAutenticado = async (req, res) => {
     try {

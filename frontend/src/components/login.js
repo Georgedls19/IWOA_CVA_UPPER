@@ -1,42 +1,21 @@
-import React, { useState } from 'react';//useState permite manejar estado de componentes
+import React, { useState } from 'react'; // useState permite manejar el estado de los componentes
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../utils/style.css'; // Asume que tienes este archivo en tu proyecto
 import { useNavigate } from 'react-router-dom';
-const token = localStorage.getItem('token');
-const response = await fetch('http://localhost:4000/usuario', {
-    method: 'GET',
-    headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`, // Adjuntar el token
-    },
-});
-
+import Logo from "../assets/logo.svg";
 const LoginCrm = () => {
-
     const [correo, setCorreo] = useState('');
     const [clave, setClave] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // Función para validar formato de correo
-    // const isValidEmail = (email) => {
-    //     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    //     return emailRegex.test(email);
-    // };
-
     const navigate = useNavigate();
-    const handleSubmit = async (e) => {//Funcion para enviar datos al servidor
-        e.preventDefault();//permite que el formulario no se envie al servidor
+
+    const handleSubmit = async (e) => {
+        e.preventDefault(); // Evita que el formulario recargue la página
 
         setErrorMessage(''); // Limpiar errores anteriores
-        setLoading(true);    // Mostrar mensaje de carga
-
-        // Validación del lado del cliente
-        // if (!isValidEmail(correo)) {
-        //     setErrorMessage('Por favor, ingresa un correo electrónico válido');
-        //     setLoading(false);
-        //     return;
-        // }
+        setLoading(true); // Mostrar mensaje de carga
 
         if (clave.trim() === '') {
             setErrorMessage('La contraseña no puede estar vacía');
@@ -45,19 +24,17 @@ const LoginCrm = () => {
         }
 
         try {
-            // Solicitud al backend
-            const response = await fetch('http://localhost:4000/validateLogin', { //fetch permite realizar peticiones al servidor
-                method: 'POST',//POST es el método que se utiliza para enviar datos al servidor
+            const response = await fetch('http://localhost:4000/validateLogin', {
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ correo, clave }),//en esta linea de codigo se envía el formulario al servidor
+                body: JSON.stringify({ correo, clave }),
             });
 
-            const data = await response.json();//aqui se obtiene el resultado de la petición
+            const data = await response.json();
 
-            if (response.ok) {//En este if se verifica si la petición fue exitosa
-                // Almacenar el token y redirigir
+            if (response.ok) {
                 localStorage.setItem('token', data.token);
                 navigate('/crm');
             } else {
@@ -72,22 +49,22 @@ const LoginCrm = () => {
     };
 
     return (
-        <div className="login-wrapper">
-            {/* Imagen centrada */}
-            <div className="icon-container text-center">
-                <img src="../assets/upper_icono." alt="Icono Upper" />   \
-            </div>
-
-            {/* Mensaje de bienvenida */}
-            <div className="text-welcome text-center">
-                <h1>Bienvenido</h1>
-                <h3>Ingresa a tu correo electrónico</h3>
+        <div>
+            <div align="center">
+                <img
+                    src={Logo}
+                    alt="Upper Logistics - Sistema de Gestión"
+                    style={{
+                        height: '40px', // Ajusta el tamaño del logo según sea necesario
+                        cursor: 'pointer',
+                    }}
+                    marginBottom="2rem"
+                />
             </div>
 
             {/* Formulario de Login */}
             <div className="login-container">
                 <form onSubmit={handleSubmit}>
-
                     {/* Correo electrónico */}
                     <div className="mb-3">
                         <input
@@ -102,7 +79,6 @@ const LoginCrm = () => {
 
                     {/* Contraseña */}
                     <div className="mb-3">
-
                         <input
                             type="password"
                             placeholder="Contraseña"
@@ -118,9 +94,9 @@ const LoginCrm = () => {
                         <button
                             type="submit"
                             className="btn btn-primary"
-                            disabled={loading}>
+                            disabled={loading}
+                        >
                             {loading ? 'Procesando...' : 'Ingresar'}
-
                         </button>
                     </div>
 

@@ -7,6 +7,7 @@ import {
     TextField,
     MenuItem,
     Card,
+    IconButton,
 } from '@mui/material';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -158,19 +159,17 @@ const renderAlmacenContent = (
                     <Box mt={3} display="flex" justifyContent="center">
                         {/* <CssBaseline /> */}
 
-                        <Button
+                        <IconButton
                             type="submit"
-                            variant="contained"
                             color="primary"
+                            size="large"
                             sx={{
-                                padding: '8px 16px', // Tamaño reducido del botón
-                                fontSize: '0.9rem', // Texto más pequeño
-                                maxWidth: '150px', // Ancho máximo
+                                fontSize: 40,
                             }}
                             onClick={handleFormSubmit}
                         >
-                            Registrar Entrada
-                        </Button>
+                            <AddCircleOutlineIcon fontSize="inherit" />
+                        </IconButton>
 
                     </Box>
                 </form>
@@ -268,9 +267,15 @@ const renderAlmacenContent = (
                         </Grid>
                     </Grid>
                     <Box mt={3} display="flex" justifyContent="center">
-                        <Button type="submit" variant="contained" color="primary">
-                            Registrar Salida
-                        </Button>
+                        <IconButton
+                            type="submit"
+                            color="primary"
+                            size="large"
+                            sx={{
+                                fontSize: 40,
+                            }}>
+                            <ExitToAppIcon fontSize="inherit" />
+                        </IconButton>
                     </Box>
                 </form>
 
@@ -368,9 +373,14 @@ const renderAlmacenContent = (
                         </Grid>
                     </Grid>
                     <Box mt={3} display="flex" justifyContent="center">
-                        <Button type="submit" variant="contained" color="primary">
-                            Registrar Traslado
-                        </Button>
+                        <IconButton type="submit"
+                            color="primary"
+                            size="large"
+                            sx={{
+                                fontSize: 40,
+                            }}>
+                            <CompareArrowsIcon fontSize="inherit" />
+                        </IconButton>
                     </Box>
                 </form>
             </Box>

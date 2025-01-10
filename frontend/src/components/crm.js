@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; // Importamos React
+import React, { useState, useEffect, useRef } from 'react'; // Importamos React
 import InventoryIcon from '@mui/icons-material/Inventory';
 import StorageIcon from '@mui/icons-material/Storage';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -24,19 +24,8 @@ import {
     ListItemButton,
     ListItemText,
     CssBaseline,//Este componente se usa para aplicar estilos a los componentes de la aplicación
-    Grid,
-    Card,
-    CardContent,
-    Button,
     TextField,
     IconButton,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Paper,
 
 
     MenuItem,
@@ -53,6 +42,8 @@ import ConfigPage from '../pages/config';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import Menu from '@mui/material/Menu';
 import { useNavigate } from 'react-router-dom';
+import Logo from "../assets/logo.svg";
+
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -61,9 +52,12 @@ const Dashboard = () => {
         { id: 2, title: 'Promedio de Salidas', content: 'Cargando...' }, // Puedes agregar lógica para esta tarjeta
         { id: 3, title: 'Actualizaciones Recientes', content: 'Cargando...' },
     ]); // Lista inicial de cuadros en el dashboard
+    const menuRef = useRef(null); // Referencia al contenedor del menú lateral
+
+
     //Los useState se utilizan para crear variables que se pueden manipular dentro de la aplicación, esot no se almacena en el estado global
-    const [drawerOpen, setDrawerOpen] = useState(true); // Controla el estado del menú lateral
-    const [selectedTab, setSelectedTab] = useState('welcome'); // Maneja las secciones del menú
+    const [drawerOpen, setDrawerOpen] = useState(false); // Controla el estado del menú lateral
+    const [selectedTab, setSelectedTab] = useState(''); // Maneja las secciones del menú
     const [almacenView, setAlmacenView] = useState(null); // Maneja vistas dentro de Almacenes
     const [ubicaciones, setUbicaciones] = useState([]); // Opciones de ubicaciones
     const [areas, setAreas] = useState([]); // Opciones de áreas
@@ -103,7 +97,6 @@ const Dashboard = () => {
                 toast.error('No estás autenticado');
                 return;
             }
-
             const response = await fetch('http://localhost:4000/usuario', {
                 method: 'PUT',
                 headers: {
@@ -112,12 +105,10 @@ const Dashboard = () => {
                 },
                 body: JSON.stringify(datosUsuario),
             });
-
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.message || 'Error al actualizar el perfil');
             }
-
             const data = await response.json();
             toast.success(data.message);
             setUser(data.usuario); // Actualiza la información del usuario
@@ -162,11 +153,11 @@ const Dashboard = () => {
 
     //Funciones     
     useEffect(() => {//Este useEffect se encarga de obtener las opciones de ubicaciones, áreas y clientes
-        const fetchData = async () => {
+        const fetchData = async () => {//Este fetData se encarga de obtener las opciones de ubicaciones, áreas y clientes de la API
             try {
-                // const ubicacionesResponse = await fetch('http://localhost:4000/ubicaciones');
-                // const ubicacionesData = await ubicacionesResponse.json();
-                // setUbicaciones(ubicacionesData);
+                const ubicacionesResponse = await fetch('http://localhost:4000/ubicaciones');
+                const ubicacionesData = await ubicacionesResponse.json();
+                setUbicaciones(ubicacionesData);
 
                 const areasResponse = await fetch('http://localhost:4000/areas');
                 const areasData = await areasResponse.json();
@@ -368,6 +359,20 @@ const Dashboard = () => {
         };
         fetchCodigosUbicaciones();
     }, []);
+
+    // Función para manejar clics fuera del menú lateral
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                setDrawerOpen(false); // Cierra el menú si se hace clic fuera de él
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
 
     const fetchCodigosUbicaciones = async () => {
         try {
@@ -662,7 +667,7 @@ const Dashboard = () => {
             [name]: value,
         }));
 
-        console.log(ubicaciones); // Inspecciona el estado de las ubicaciones
+
 
         // Si se está escribiendo en el campo "codigo_lote"
         if (name === "codigo_lote" && value) { //value es el valor del campo codigo_lote
@@ -887,7 +892,10 @@ const Dashboard = () => {
                 <CssBaseline />
 
                 {/* Barra Superior */}
-                <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+                <AppBar
+                    position="fixed"
+                    sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
+                >
                     <Toolbar>
                         <IconButton
                             color="inherit"
@@ -897,9 +905,16 @@ const Dashboard = () => {
                         >
                             <MenuIcon />
                         </IconButton>
-                        <Typography variant="h6" component="div">
-                            Upper Logistics - Sistema de Gestión
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <img
+                                src={Logo}
+                                alt="Upper Logistics - Sistema de Gestión"
+                                style={{
+                                    height: '40px', // Ajusta el tamaño del logo según sea necesario
+                                    cursor: 'pointer',
+                                }}
+                            />
+                        </Box>
                         <Box sx={{ flexGrow: 1 }} />
                         <IconButton
                             size="large"
@@ -937,6 +952,8 @@ const Dashboard = () => {
 
                 {/* Menú Lateral */}
                 <Box
+
+                    ref={menuRef}
                     sx={{
                         width: drawerOpen ? 240 : 60,
                         flexShrink: 0,
@@ -1006,6 +1023,7 @@ const Dashboard = () => {
                     }}
                 >
                     {renderContent()}
+
                 </Box>
             </Box>
         </>

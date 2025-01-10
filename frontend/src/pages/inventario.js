@@ -134,7 +134,6 @@ const Inventario = (fetchCodigosUbicaciones) => {
         }
     };
 
-
     const handleConfirmDelete = async () => {
         // Eliminar filas con stock después de la confirmación
         await eliminarFilas(rowsWithStock.map((fila) => fila.lote_id));
@@ -168,11 +167,7 @@ const Inventario = (fetchCodigosUbicaciones) => {
                 width: '60%',
                 maxWidth: '1200px',
             }}
-
-
         >
-
-
             <Box
                 variant="h5"
                 gutterBottom
