@@ -26,6 +26,7 @@ const { registrarEntrada,
     eliminarUsuario,
     eliminarFilas,
 
+
 } = require('../controllers/crud.controllers');
 const router = Router();
 //se crean las rutas para las diferentes acciones que se pueden realizar en la aplicación

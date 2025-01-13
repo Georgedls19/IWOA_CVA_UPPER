@@ -1,8 +1,9 @@
-import React, { useState } from 'react'; // useState permite manejar el estado de los componentes
+import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import '../utils/style.css'; // Asume que tienes este archivo en tu proyecto
+import '../utils/style.css';
 import { useNavigate } from 'react-router-dom';
-import Logo from "../assets/logo.svg";
+import logoUpper from '../assets/upper_icono.png';
+
 const LoginCrm = () => {
     const [correo, setCorreo] = useState('');
     const [clave, setClave] = useState('');
@@ -12,13 +13,13 @@ const LoginCrm = () => {
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
-        e.preventDefault(); // Evita que el formulario recargue la página
+        e.preventDefault();
 
         setErrorMessage(''); // Limpiar errores anteriores
-        setLoading(true); // Mostrar mensaje de carga
+        setLoading(true);    // Mostrar mensaje de carga
 
-        if (clave.trim() === '') {
-            setErrorMessage('La contraseña no puede estar vacía');
+        if (correo.trim() === '' || clave.trim() === '') {
+            setErrorMessage('Por favor, complete todos los campos');
             setLoading(false);
             return;
         }
@@ -38,10 +39,16 @@ const LoginCrm = () => {
                 localStorage.setItem('token', data.token);
                 navigate('/crm');
             } else {
-                setErrorMessage(data.message || 'Error de autenticación');
+                if (data.code === 'DB_CONNECTION_ERROR') {
+                    setErrorMessage('Error al conectar con la base de datos. Intente más tarde.');
+                } else if (data.code === 'USER_NOT_FOUND') {
+                    setErrorMessage('El usuario no existe o las credenciales son incorrectas.');
+                } else {
+                    setErrorMessage(data.message || 'Error de autenticación.');
+                }
             }
         } catch (error) {
-            setErrorMessage('Error de conexión al servidor');
+            setErrorMessage('Error de conexión con el servidor. Verifique su red e intente de nuevo.');
             console.error(error);
         } finally {
             setLoading(false); // Ocultar mensaje de carga
@@ -49,58 +56,45 @@ const LoginCrm = () => {
     };
 
     return (
-        <div>
-            <div align="center">
-                <img
-                    src={Logo}
-                    alt="Upper Logistics - Sistema de Gestión"
-                    style={{
-                        height: '40px', // Ajusta el tamaño del logo según sea necesario
-                        cursor: 'pointer',
-                    }}
-                    marginBottom="2rem"
-                />
-            </div>
+        <div className="wrapper">
+            <span className="bg-animate"></span>
 
-            {/* Formulario de Login */}
-            <div className="login-container">
+            <div className="form-box login">
+                <div className="logo-container">
+                    <img src={logoUpper} alt="Logo UPPER" />
+                </div>
+
+                <h2>Login</h2>
                 <form onSubmit={handleSubmit}>
-                    {/* Correo electrónico */}
-                    <div className="mb-3">
+                    <div className="input-box">
                         <input
                             type="email"
-                            placeholder="Correo electrónico"
-                            className="form-control"
                             value={correo}
                             onChange={(e) => setCorreo(e.target.value)}
                             required
                         />
+                        <label>Email</label>
                     </div>
 
-                    {/* Contraseña */}
-                    <div className="mb-3">
+                    <div className="input-box">
                         <input
                             type="password"
-                            placeholder="Contraseña"
-                            className="form-control"
                             value={clave}
                             onChange={(e) => setClave(e.target.value)}
                             required
                         />
+                        <label>Password</label>
                     </div>
 
-                    {/* Botón de enviar datos */}
-                    <div className="d-flex justify-content-center">
-                        <button
-                            type="submit"
-                            className="btn btn-primary"
-                            disabled={loading}
-                        >
-                            {loading ? 'Procesando...' : 'Ingresar'}
-                        </button>
-                    </div>
+                    <button
+                        type="submit"
+                        className="btn"
+                        disabled={loading}
+                    >
+                        {loading ? 'Procesando...' : 'Ingresar'}
+                    </button>
 
-                    {/* Mensaje de error */}
+                    {/* Mensaje de error debajo del botón */}
                     {errorMessage && (
                         <div className="mt-3 text-center text-danger">
                             {errorMessage}

@@ -159,30 +159,20 @@ const registrarTraslado = async (req, res) => {
             [ubicacion_destino, codigo_lote]
         );
 
-        // Enviar el lote actualizado al cliente
-        res.status(200).json({
-            message: 'Traslado registrado con éxito',
-            lote: updatedLote.rows[0],
-            movimiento: movimiento.rows[0],
+        // Solo enviar una respuesta
+        return res.status(201).json({
+            message: "Traslado registrado exitosamente",
+            updatedLote: updatedLote.rows[0]
         });
-        console.log("ubicacion_destino:", ubicacion_destino);
-        console.log("codigo_lote:", codigo_lote);
-
-        codigo_lote = "";
-        ubicacion_destino = "";
-        cantidad = "";
-        area = "";
-        observaciones = "";
-        responsable = "";
-        fecha_movimiento = "";
 
     } catch (error) {
-        console.error('Error al registrar el traslado:', error.message);
-        res.status(500).json({ message: 'Error interno del servidor' });
-        console.log("ubicacion_destino:", ubicacion_destino);
-        console.log("codigo_lote:", codigo_lote);
+        console.error("Error al registrar el traslado:", error.message);
+
+        // Solo enviar una respuesta de error
+        return res.status(500).json({ error: `Error interno del servidor: ${error.message}` });
     }
 };
+
 
 const validarLote = async (req, res) => {
     try {
@@ -549,6 +539,23 @@ const getMovimientos = async (req, res) => {
         res.status(500).json({ message: 'Error al obtener los movimientos' });
     }
 };
+// const getUsuarios = async (req, res) => {
+//     try {
+//         const result = await pool.query('SELECT id, nombre, correo, rol FROM usuarios ORDER BY id');
+//         //obtener el rol del usuario
+//         const rolUsuario = await pool.query('SELECT rol FROM usuarios WHERE id = $1', [req.user.id]);
+//         result.rows.forEach((row) => {
+//             row.rol = rolUsuario.rows[0].rol;
+//         });
+
+
+//         res.status(200).json(result.rows); // Asegúrate de devolver `result.rows`, que es un arreglo
+//     } catch (error) {
+//         console.error('Error al obtener usuarios:', error.message);
+//         res.status(500).json({ message: 'Error al obtener usuarios' });
+//     }
+// };
+
 const getUsuarios = async (req, res) => {
     try {
         const result = await pool.query('SELECT id, nombre, correo, rol FROM usuarios ORDER BY id');

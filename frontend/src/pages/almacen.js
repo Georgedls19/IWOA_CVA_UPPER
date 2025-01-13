@@ -8,6 +8,7 @@ import {
     MenuItem,
     Card,
     IconButton,
+
 } from '@mui/material';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -15,6 +16,11 @@ import { es as esLocale } from 'date-fns/locale';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
+import MobileScreenShareIcon from '@mui/icons-material/MobileScreenShare';
+import QRCode from 'qrcode.react';
+
+
+
 
 // Define la función y exporta
 const renderAlmacenContent = (
@@ -24,7 +30,10 @@ const renderAlmacenContent = (
     utils) => {
     const { entradaData, salidaData, trasladoData, areas, clientes } = state;
     const { handleFormSubmit, handleSalidaFormSubmit, handleTrasladoFormSubmit, handleInputChange, handleSalidaInputChange, handleTrasladoInputChange, handleAlmacenViewChange } = handlers;
+
     const { setEntradaData, fieldEntradas, ubicaciones, setSalidaData } = utils;
+    // Estado para mostrar/ocultar el modal
+
     // Mismo código de renderAlmacenContent aquí, pero usa las props proporcionadas
     if (almacenView === 'entradas') {
         return (
@@ -40,7 +49,7 @@ const renderAlmacenContent = (
                     width: '30%',
                 }}
             >
-                <Typography variant="h4" color="primary" gutterBottom>
+                <Typography variant="h4" color="#081b29" gutterBottom>
                     Entradas
                 </Typography>
                 <Typography variant="body1" gutterBottom>
@@ -165,12 +174,12 @@ const renderAlmacenContent = (
                             size="large"
                             sx={{
                                 fontSize: 40,
+                                backgroundColor: "#265980",
                             }}
                             onClick={handleFormSubmit}
                         >
                             <AddCircleOutlineIcon fontSize="inherit" />
                         </IconButton>
-
                     </Box>
                 </form>
             </Box>
@@ -189,7 +198,7 @@ const renderAlmacenContent = (
                     width: '40%',
                 }}
             >
-                <Typography variant="h4" color="primary" gutterBottom>
+                <Typography variant="h4" color="#081b29" gutterBottom>
                     Salidas
                 </Typography>
                 <Typography variant="body1" gutterBottom>
@@ -273,6 +282,8 @@ const renderAlmacenContent = (
                             size="large"
                             sx={{
                                 fontSize: 40,
+                                backgroundColor: "#265980",
+
                             }}>
                             <ExitToAppIcon fontSize="inherit" />
                         </IconButton>
@@ -295,7 +306,7 @@ const renderAlmacenContent = (
                     width: '25%',
                 }}
             >
-                <Typography variant="h4" color="primary" gutterBottom>
+                <Typography variant="h4" color="#081b29" gutterBottom>
                     Traslados
                 </Typography>
                 <Typography variant="body1" gutterBottom>
@@ -373,11 +384,12 @@ const renderAlmacenContent = (
                         </Grid>
                     </Grid>
                     <Box mt={3} display="flex" justifyContent="center">
-                        <IconButton type="submit"
+                        <IconButton type="submit "
                             color="primary"
                             size="large"
                             sx={{
                                 fontSize: 40,
+                                backgroundColor: "#265980",
                             }}>
                             <CompareArrowsIcon fontSize="inherit" />
                         </IconButton>
@@ -439,6 +451,12 @@ const renderAlmacenContent = (
                         icon: <CompareArrowsIcon sx={{ fontSize: 40, color: '#388e3c' }} />,
                         action: () => handleAlmacenViewChange('traslados'),
                     },
+                    // {
+                    //     title: 'Móvil',
+                    //     description: 'Acceso desde un dispositivo móvil',
+                    //     icon: <MobileScreenShareIcon sx={{ fontSize: 40, color: '#ffa726' }} />,
+                    //     action: () => alert('Funcionalidad móvil seleccionada'),
+                    // },
                 ].map((item, index) => (
                     <Grid item xs={12} sm={6} md={4} key={index}>
                         <Card
@@ -460,7 +478,6 @@ const renderAlmacenContent = (
                                 },
                             }}
                         >
-
                             {item.icon}
                             <Typography variant="h6" gutterBottom>
                                 {item.title}
@@ -472,6 +489,7 @@ const renderAlmacenContent = (
                     </Grid>
                 ))}
             </Grid>
+
         </Box>
     );
 };

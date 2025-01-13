@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import {
     TableCell,
     TextField,
@@ -16,9 +18,11 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
+    IconButton,
 } from '@mui/material';
 import { toast } from 'react-toastify';
-
+import DeleteIcon from '@mui/icons-material/Delete';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 const Inventario = (fetchCodigosUbicaciones) => {
     const [tabla, setTabla] = useState('Stock');
     const [tipoMovimiento, setTipoMovimiento] = useState('');
@@ -32,16 +36,28 @@ const Inventario = (fetchCodigosUbicaciones) => {
 
     const obtenerDatos = async () => {
         try {
-            const url =
-                tabla === 'Stock'
-                    ? 'http://localhost:4000/stock-summary'
-                    : 'http://localhost:4000/reportes';
+            let url;
+            switch (tabla) {
+                case 'Stock':
+                    url = 'http://localhost:4000/stock-summary';
+                    break;
+                case 'General':
+                    url = 'http://localhost:4000/reportes';
+                    break;
+                case 'Lotes':
+                    url = 'http://localhost:4000/lotes';
+                    break;
+                default:
+                    url = 'http://localhost:4000/stock-summary';
+            }
+
             const respuesta = await axios.get(url);
             setDatos(respuesta.data.data);
         } catch (error) {
             console.error('Error al obtener los datos:', error.message);
         }
     };
+
 
     useEffect(() => {
         obtenerDatos();
@@ -62,8 +78,119 @@ const Inventario = (fetchCodigosUbicaciones) => {
         setCurrentPage(1); // Reiniciar a la primera página al cambiar de tabla
     };
 
-    const exportarExcel = () => {
-        // Lógica para exportar datos a Excel (omitida por simplicidad).
+    const exportarExcel = async () => {
+        // Establecer el título del reporte dependiendo de la tabla y el tipo de movimiento
+        let nombreArchivo = 'REPORTE';
+        let reporteTitulo = '';
+        if (tabla === 'General') {
+            reporteTitulo = 'REPORTE GENERAL';
+            nombreArchivo += ' GENERAL';
+        } else if (tabla === 'Entrada') {
+            reporteTitulo = 'REPORTE GENERAL-ENTRADA';
+            nombreArchivo += ' GENERAL-ENTRADA';
+        } else if (tabla === 'Salida') {
+            reporteTitulo = 'REPORTE GENERAL-SALIDA';
+            nombreArchivo += ' GENERAL-SALIDA';
+        } else if (tabla === 'Stock') {
+            reporteTitulo = 'REPORTE STOCK';
+            nombreArchivo += ' STOCK';
+        }
+
+        // Añadir tipo de movimiento si existe
+        if (tabla === 'General' && tipoMovimiento) {
+            reporteTitulo += ` - ${tipoMovimiento.toUpperCase()}`;
+            nombreArchivo += `  -${tipoMovimiento.toUpperCase()}`;
+        }
+
+        nombreArchivo += '.xlsx';
+
+        // Crear el libro y la hoja de trabajo
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Datos');
+
+        // Añadir el título en las celdas B2, C2, D2, E2 con fondo azul
+        worksheet.mergeCells('B2:E2');
+        const titleCell = worksheet.getCell('B2');
+
+        titleCell.value = reporteTitulo;  // Establecer el título en la celda B2
+        titleCell.font = { bold: true, size: 25 };  // Negrita y tamaño de letra 25
+        titleCell.alignment = { horizontal: 'center', vertical: 'middle' };  // Centrado
+        titleCell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FF4F81BD' },  // Fondo azul
+        };
+        titleCell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' },
+        };
+
+        // Determinar la posición inicial (B6)
+        const startRow = 6;
+        const startColumn = 1;
+
+        // Convertir encabezados a mayúsculas
+        const encabezados = Object.keys(datosFiltrados[0] || {}).map((key) => key.toUpperCase());
+
+        // Agregar encabezados en la celda B6 y siguientes
+        encabezados.forEach((header, index) => {
+            const cell = worksheet.getCell(startRow, startColumn + index);
+            cell.value = header;
+            cell.font = { bold: true, size: 14 }; // Negrita y tamaño de letra
+            cell.alignment = { horizontal: 'center', vertical: 'middle' }; // Centrado
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'B7DEE8' }, // Fondo azul
+            };
+            cell.border = {
+                top: { style: 'thin' },
+                left: { style: 'thin' },
+                bottom: { style: 'thin' },
+                right: { style: 'thin' },
+            };
+        });
+
+        // Ajustar la altura de las filas de encabezados
+        worksheet.getRow(startRow).height = 30;
+
+        // Agregar datos justo debajo de los encabezados
+        datosFiltrados.forEach((fila, filaIndex) => {
+            Object.values(fila).forEach((value, colIndex) => {
+                const cell = worksheet.getCell(startRow + 1 + filaIndex, startColumn + colIndex);
+                cell.value = value;
+                cell.font = { size: 12 }; // Tamaño de letra
+                cell.alignment = { horizontal: 'center', vertical: 'middle' }; // Centrado
+                cell.border = {
+                    top: { style: 'thin' },
+                    left: { style: 'thin' },
+                    bottom: { style: 'thin' },
+                    right: { style: 'thin' },
+                };
+            });
+        });
+
+        // Ajustar ancho de las columnas basado en el contenido (encabezado y los valores de todas las filas)
+        worksheet.columns = encabezados.map((header, index) => {
+            // Obtener la longitud del encabezado
+            const headerLength = header.length;
+
+            // Obtener la longitud máxima de los valores de la columna, considerando todos los datos
+            const maxDataLength = Math.max(
+                ...datosFiltrados.map(fila => String(Object.values(fila)[index]).length)
+            );
+
+            // Determinar el ancho máximo entre encabezado y los valores de la columna
+            const maxLength = Math.max(headerLength, maxDataLength);
+
+            return { width: maxLength + 10 }; // Ancho basado en el contenido más 2 espacios
+        });
+
+        // Descargar el archivo
+        const buffer = await workbook.xlsx.writeBuffer();
+        saveAs(new Blob([buffer]), nombreArchivo);
     };
 
     const toggleRowSelection = (lote_id) => {
@@ -169,22 +296,21 @@ const Inventario = (fetchCodigosUbicaciones) => {
             }}
         >
             <Box
-                variant="h5"
-                gutterBottom
                 sx={{
                     color: '#2c3e50', // Color elegante y profesional
                     fontWeight: 'bold', // Texto más prominente
                     letterSpacing: '0.2em', // Espaciado para darle más estilo
                     textTransform: 'uppercase', // Todo en mayúsculas para un encabezado llamativo
-                    textShadow: '2px 2px 5px rgba(0, 0, 0, 0.2)', // Sombra suave para mayor impacto                    
+                    textShadow: '2px 2px 5px rgba(0, 0, 0, 0.2)', // Sombra suave para mayor impacto
                     background: 'black', // Gradiente suave
                     WebkitBackgroundClip: 'text', // Usamos el gradiente como color del texto
                     WebkitTextFillColor: 'transparent', // Hacemos que el fondo rellene el texto
                     marginLeft: '1rem',
-                    marginBottom: '2rem',
+                    marginBottom: '2rem', // Este reemplaza a gutterBottom
                 }}
-            >Inventario</Box>
-
+            >
+                Inventario
+            </Box>
             <Grid container spacing={2} sx={{ marginBottom: '16px' }}>
                 <Grid item xs={12} sm={6} md={4}>
                     <FormControl fullWidth>
@@ -229,26 +355,27 @@ const Inventario = (fetchCodigosUbicaciones) => {
                 </Grid>
 
                 <Grid item xs={12} sm={6} md={4}>
-                    <Button
+                    <IconButton
                         variant="contained"
-                        color="primary"
+                        color="green"
                         onClick={exportarExcel}
                         fullWidth
+                        backgroundColor='green'
                     >
-                        Exportar a Excel
-                    </Button>
+                        <InsertDriveFileIcon color='green'>Exportar</InsertDriveFileIcon>Exportar
+                    </IconButton>
                 </Grid>
 
                 <Grid item xs={12} sm={6} md={4}>
-                    <Button
+                    <IconButton
                         variant="contained"
                         color="error"
                         onClick={eliminarFilasSeleccionadas}
                         fullWidth
                         disabled={selectedRows.length === 0}
                     >
-                        Eliminar Filas Seleccionadas
-                    </Button>
+                        <DeleteIcon color='red'>Eliminar</DeleteIcon>Eliminar
+                    </IconButton>
                 </Grid>
             </Grid>
 

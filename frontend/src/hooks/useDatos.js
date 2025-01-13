@@ -7,7 +7,7 @@ export const useDatos = () => {
     const obtenerDatos = async () => {
         try {
             const respuesta = await axios.get('http://localhost:4000/stock-summary');
-            setDatos(respuesta.data.data);
+            setDatos(respuesta.data.data);//aqui se establece el estado de datos 
         } catch (error) {
             console.error('Error al obtener datos:', error.message);
         }

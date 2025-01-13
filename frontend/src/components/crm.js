@@ -26,8 +26,6 @@ import {
     CssBaseline,//Este componente se usa para aplicar estilos a los componentes de la aplicación
     TextField,
     IconButton,
-
-
     MenuItem,
 } from '@mui/material'; // Importamos Material UI para el diseño
 import MenuIcon from '@mui/icons-material/Menu';
@@ -70,6 +68,8 @@ const Dashboard = () => {
         traslados: 0,
     });
     const [lastUpdateDate, setLastUpdateDate] = useState(new Date().toDateString());
+    const [qrModalOpen, setQrModalOpen] = useState(false);
+
     const addUpdate = (type) => { // Función para actualizar las actualizaciones recientes
         setDailyUpdates((prev) => ({
             ...prev,
@@ -95,7 +95,7 @@ const Dashboard = () => {
             const token = localStorage.getItem('token');
             if (!token) {
                 toast.error('No estás autenticado');
-                return;
+                return
             }
             const response = await fetch('http://localhost:4000/usuario', {
                 method: 'PUT',
@@ -849,6 +849,7 @@ const Dashboard = () => {
                     },
                     {
                         setEntradaData, // Verifica que esta función esté disponible en el contexto del componente
+                        setQrModalOpen,
                         fieldEntradas,  // Verifica que este objeto esté definido
                         ubicaciones,    // Verifica que esta lista esté definida
                         setSalidaData,  // Incluye también setSalidaData si se usa
@@ -894,7 +895,8 @@ const Dashboard = () => {
                 {/* Barra Superior */}
                 <AppBar
                     position="fixed"
-                    sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
+                    sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, backgroundColor: '#081b29' }}
+
                 >
                     <Toolbar>
                         <IconButton

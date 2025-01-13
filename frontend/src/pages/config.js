@@ -29,7 +29,45 @@ const ConfigPage = () => {
         theme: 'light',
         notifications: true,
         language: 'es',
+        updateInterval: 1, // Nuevo estado para el intervalo de actualización,
     });
+
+    const saveSettings = async () => {
+        try {
+            // Obtener los datos de configuración (asegúrate de reemplazar con tus propios datos)
+            const settingsData = {
+                theme: 'dark', // Ejemplo de dato
+                notifications: true, // Ejemplo de dato
+                language: 'es', // Ejemplo de dato
+            };
+
+            // Validación básica de los datos
+            if (!settingsData.language) {
+                toast.error('El idioma es obligatorio.');
+                return;
+            }
+
+            // Enviar la configuración al backend
+            const response = await fetch('https://tu-backend.com/api/settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(settingsData),
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al guardar la configuración. Por favor, inténtalo de nuevo.');
+            }
+
+            // Mostrar mensaje de éxito
+            toast.success('Configuración guardada correctamente.');
+        } catch (error) {
+            // Manejar errores
+            console.error('Error al guardar la configuración:', error);
+            toast.error(error.message || 'Ocurrió un error inesperado.');
+        }
+    };
 
     const [openUserModal, setOpenUserModal] = useState(false); // Estado para el modal
     const [users, setUsers] = useState([]); // Lista de usuarios
@@ -194,6 +232,23 @@ const ConfigPage = () => {
                                     <MenuItem value="es">Español</MenuItem>
                                     <MenuItem value="en">Inglés</MenuItem>
                                     <MenuItem value="fr">Francés</MenuItem>
+                                </TextField>
+                            </Box>
+
+                            <Box mt={2}>
+                                <TextField
+                                    select
+                                    label="Intervalo de Actualización"
+                                    value={settings.updateInterval}
+                                    onChange={(e) =>
+                                        handleSettingChange('updateInterval', e.target.value)
+                                    }
+                                    fullWidth
+                                >
+                                    <MenuItem value={1}>1 día</MenuItem>
+                                    <MenuItem value={5}>5 días</MenuItem>
+                                    <MenuItem value={10}>10 días</MenuItem>
+                                    <MenuItem value={30}>30 días</MenuItem>
                                 </TextField>
                             </Box>
                         </CardContent>
