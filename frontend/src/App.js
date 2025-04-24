@@ -4,23 +4,24 @@ import Crm from './components/crm';
 import Dashboard from './components/crm';
 import AppMovil from './pages/Movil/AlmacenMovil';
 import Almacen from "./pages/almacen";
-
 import { Container } from '@mui/material';
 // import Menu from './components/Navbar';
+import { ThemeProvider } from './context/themeContext';
 
 export default function App() {
   return (
-    <BrowserRouter>
-      {/* <Menu/> */}
-      <Container>
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/crm" element={<Crm />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/movil" element={<AppMovil />} />
-          <Route path="/almacen" element={<Almacen />} />
-        </Routes>
-      </Container>
-    </BrowserRouter>
+    <ThemeProvider>
+      <BrowserRouter>
+        <Container>
+          <Routes>
+            <Route path="/" element={<Login />} />
+            <Route path="/crm" element={<Crm />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/movil" element={<AppMovil />} />
+            <Route path="/almacen" element={<Almacen />} />
+          </Routes>
+        </Container>
+      </BrowserRouter>
+    </ThemeProvider>
   )
 }

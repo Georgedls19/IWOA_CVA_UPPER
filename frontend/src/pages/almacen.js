@@ -451,12 +451,12 @@ const renderAlmacenContent = (
                         icon: <CompareArrowsIcon sx={{ fontSize: 40, color: '#388e3c' }} />,
                         action: () => handleAlmacenViewChange('traslados'),
                     },
-                    // {
-                    //     title: 'Móvil',
-                    //     description: 'Acceso desde un dispositivo móvil',
-                    //     icon: <MobileScreenShareIcon sx={{ fontSize: 40, color: '#ffa726' }} />,
-                    //     action: () => alert('Funcionalidad móvil seleccionada'),
-                    // },
+                    {
+                        title: 'Móvil',
+                        description: 'Acceso desde un dispositivo móvil',
+                        icon: <MobileScreenShareIcon sx={{ fontSize: 40, color: '#ffa726' }} />,
+                        action: () => alert('Funcionalidad móvil seleccionada'),
+                    },
                 ].map((item, index) => (
                     <Grid item xs={12} sm={6} md={4} key={index}>
                         <Card

@@ -25,10 +25,14 @@ const { registrarEntrada,
     crearUsuario,
     eliminarUsuario,
     eliminarFilas,
+    getsettings,
+    putsettings,
 
 
 } = require('../controllers/crud.controllers');
 const router = Router();
+
+
 //se crean las rutas para las diferentes acciones que se pueden realizar en la aplicación
 router.post('/validateLogin', validateLogin);
 router.post('/almacen/registro-lote', registrarEntrada);//El put es para actualizar un usuario, el post es para crear un nuevo usuario, el delete es para eliminar un usuario
@@ -58,7 +62,8 @@ router.put('/ubicaciones/ocupado/:codigo', actualizarEstadoUbicacion);
 router.get('/inventario/stock', getStockByLote);
 router.get('/stock-summary', getStockByLote);
 router.delete('/eliminar-filas', eliminarFilas);
-
+router.get("/configuracion/tema", authenticateToken, getsettings);
+router.put("/tema", authenticateToken, putsettings);//authenticateToken es para verificar si el token es válido
 
 // Ruta para obtener los reportes
 router.get('/reportes', getReportes);

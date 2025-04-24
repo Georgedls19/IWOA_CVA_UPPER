@@ -18,7 +18,7 @@ const LoginCrm = () => {
         setErrorMessage(''); // Limpiar errores anteriores
         setLoading(true);    // Mostrar mensaje de carga
 
-        if (correo.trim() === '' || clave.trim() === '') {
+        if (correo.trim() === '' || clave.trim() === '') {//trim elimina espacios en blanco al principia y final
             setErrorMessage('Por favor, complete todos los campos');
             setLoading(false);
             return;
@@ -61,10 +61,10 @@ const LoginCrm = () => {
 
             <div className="form-box login">
                 <div className="logo-container">
-                    <img src={logoUpper} alt="Logo UPPER" />
+                    <img src={logoUpper} alt="Logo_UPPER" />
                 </div>
 
-                <h2>Login</h2>
+                <h2>Bienvenido</h2>
                 <form onSubmit={handleSubmit}>
                     <div className="input-box">
                         <input

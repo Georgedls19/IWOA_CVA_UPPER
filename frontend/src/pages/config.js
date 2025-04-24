@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+
 import {
     Box,
     Typography,
@@ -24,51 +25,17 @@ import {
 } from '@mui/material';
 import { toast } from 'react-toastify';
 import CloseIcon from '@mui/icons-material/Close';
+import { useTheme } from '../context/themeContext';
+
 const ConfigPage = () => {
+
+    // REACT STATE HOOKS
     const [settings, setSettings] = useState({
-        theme: 'light',
+        // theme: 'light',
         notifications: true,
         language: 'es',
         updateInterval: 1, // Nuevo estado para el intervalo de actualización,
     });
-
-    const saveSettings = async () => {
-        try {
-            // Obtener los datos de configuración (asegúrate de reemplazar con tus propios datos)
-            const settingsData = {
-                theme: 'dark', // Ejemplo de dato
-                notifications: true, // Ejemplo de dato
-                language: 'es', // Ejemplo de dato
-            };
-
-            // Validación básica de los datos
-            if (!settingsData.language) {
-                toast.error('El idioma es obligatorio.');
-                return;
-            }
-
-            // Enviar la configuración al backend
-            const response = await fetch('https://tu-backend.com/api/settings', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(settingsData),
-            });
-
-            if (!response.ok) {
-                throw new Error('Error al guardar la configuración. Por favor, inténtalo de nuevo.');
-            }
-
-            // Mostrar mensaje de éxito
-            toast.success('Configuración guardada correctamente.');
-        } catch (error) {
-            // Manejar errores
-            console.error('Error al guardar la configuración:', error);
-            toast.error(error.message || 'Ocurrió un error inesperado.');
-        }
-    };
-
     const [openUserModal, setOpenUserModal] = useState(false); // Estado para el modal
     const [users, setUsers] = useState([]); // Lista de usuarios
     const [newUser, setNewUser] = useState({
@@ -79,10 +46,17 @@ const ConfigPage = () => {
     }); // Estado para el nuevo usuario
     const [showCreateUserForm, setShowCreateUserForm] = useState(false); // Estado para mostrar/ocultar el formulario
     const [editUser, setEditUser] = useState(null); // Estado para el usuario que se edita
-    const handleSettingChange = (key, value) => {
-        setSettings((prev) => ({
-            ...prev,
-            [key]: value,
+    const { theme, applyTheme } = useTheme(); // Ete contiene el tema actual y la función para aplicar el tema
+    const [selectedTheme, setSelectedTheme] = useState(theme); // Aqui se almacena el tema seleccionado
+    //REACT USEEFFECTS 
+
+
+    // REACT FUNCTIONS
+    const handleSettingChange = (key, value) => {//En esta función se actualiza el estado de la configuración
+        setSettings((prev) => ({//aqui se actualiza el estado de la configuración
+            ...prev, // prev es el estado actual
+            [key]: value,//se actualiza el valor de la configuración
+
         }));
     };
     const handleUserInputChange = (e) => {
@@ -164,11 +138,10 @@ const ConfigPage = () => {
             toast.error(error.message);
         }
     };
-
-    useEffect(() => {
-        fetchUsers();
-    }, []);
-
+    const handleThemeChange = async (e) => {
+        const newTheme = e.target.value;
+        applyTheme(newTheme);
+    }
     return (
         <Box
             sx={{
@@ -177,8 +150,6 @@ const ConfigPage = () => {
                 width: '60%',
                 maxWidth: '1200px',
             }}
-
-
         >
             <Typography
                 variant="h5"
@@ -195,11 +166,9 @@ const ConfigPage = () => {
                     marginLeft: '1rem',
                     marginBottom: '2rem',
                 }}
-
             >
                 Configuración
             </Typography>
-
             <Grid container spacing={4}>
                 {/* Ajustes Generales */}
                 <Grid item xs={12} md={6}>
@@ -259,18 +228,19 @@ const ConfigPage = () => {
                         </CardActions>
                     </Card>
                 </Grid>
-
                 {/* Personalización */}
                 <Grid item xs={12} md={6}>
                     <Card>
                         <CardContent>
                             <Typography variant="h6">Personalización</Typography>
-                            <Box mt={2}>
-                                <TextField
+                            <Box
+                                class="dark:bg-dark dark:text-white"
+                                mt={2}>
+                                <TextField //Tema
                                     select
                                     label="Tema"
-                                    value={settings.theme}
-                                    onChange={(e) => handleSettingChange('theme', e.target.value)}
+                                    value={theme}
+                                    onChange={(e) => setSelectedTheme(e.target.value)}//En esta parte se aplica el tema con el valor del estado 
                                     fullWidth
                                 >
                                     <MenuItem value="light">Claro</MenuItem>
@@ -279,7 +249,11 @@ const ConfigPage = () => {
                             </Box>
                         </CardContent>
                         <CardActions>
-                            <Button variant="contained" color="primary">
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                onClick={() => applyTheme(selectedTheme)}//En esta parte se aplica el tema con el valor del estado
+                            >
                                 Aplicar
                             </Button>
                         </CardActions>
@@ -486,7 +460,6 @@ const ConfigPage = () => {
                     )}
                 </Box>
             </Modal>
-
 
         </Box>
     );

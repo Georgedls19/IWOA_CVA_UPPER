@@ -77,7 +77,6 @@ const registrarEntrada = async (req, res) => {
         res.status(500).json({ message: 'Error en el servidor al registrar la entrada' });
     }
 };
-
 // Registrar una nueva salida
 const registrarSalida = async (req, res) => {
     try {
@@ -122,7 +121,6 @@ const registrarSalida = async (req, res) => {
         res.status(500).json({ message: 'Error en el servidor.' });
     }
 };
-
 // Registrar un traslado
 const registrarTraslado = async (req, res) => {
     const { codigo_lote, ubicacion_origen, ubicacion_destino, cantidad, observaciones, responsable } = req.body;
@@ -172,8 +170,6 @@ const registrarTraslado = async (req, res) => {
         return res.status(500).json({ error: `Error interno del servidor: ${error.message}` });
     }
 };
-
-
 const validarLote = async (req, res) => {
     try {
         const { codigo_lote } = req.query;
@@ -194,7 +190,6 @@ const validarLote = async (req, res) => {
         res.status(500).json({ message: "Error en el servidor al buscar el lote" });
     }
 };
-
 const getAreas = async (req, res) => {
     //en esta funcion se obtendran todos los nombre de las areas
     try {
@@ -539,6 +534,39 @@ const getMovimientos = async (req, res) => {
         res.status(500).json({ message: 'Error al obtener los movimientos' });
     }
 };
+const getsettings = async (req, res) => {
+    //en esta funcion se obtendran todos los nombre de las areas
+    try {
+        //consulta que obtendra las columnas de los nombres
+        const result = await pool.query(
+            'SELECT modo FROM usuarios Where id = $1',
+            [req.user.id]
+        );
+        //Aqui se muestran todos los nombres de las areas
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error("Error:", error.message);
+        res.status(500).json({ message: "Error" });
+    }
+}
+const putsettings = async (req, res) => {
+    try {
+        const result = await pool.query(
+            'UPDATE usuarios SET modo = $1 WHERE id= $2',
+            [req.body.theme, req.user.id]
+        );
+
+        console.log(result.rows);
+        // Solo una respuesta
+        return res.status(200).json({ message: "Tema actualizado correctamente" });
+
+    } catch (error) {
+        console.error("Error:", error.message);
+        return res.status(500).json({ message: "Error del servidor" });
+    }
+};
+
+
 // const getUsuarios = async (req, res) => {
 //     try {
 //         const result = await pool.query('SELECT id, nombre, correo, rol FROM usuarios ORDER BY id');
@@ -786,6 +814,7 @@ const eliminarFilas = async (req, res) => {
 };
 
 
+
 module.exports = {
     registrarEntrada,
     registrarSalida,
@@ -812,4 +841,6 @@ module.exports = {
     crearUsuario,
     eliminarUsuario,
     eliminarFilas,
+    getsettings,
+    putsettings,
 }

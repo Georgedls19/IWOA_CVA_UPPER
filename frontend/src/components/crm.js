@@ -27,6 +27,7 @@ import {
     TextField,
     IconButton,
     MenuItem,
+    Image,
 } from '@mui/material'; // Importamos Material UI para el diseño
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -39,9 +40,11 @@ import RenderInventoryContent from '../pages/inventario';
 import ConfigPage from '../pages/config';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import Menu from '@mui/material/Menu';
-import { useNavigate } from 'react-router-dom';
+import { UNSAFE_SingleFetchRedirectSymbol, useNavigate } from 'react-router-dom';
 import Logo from "../assets/logo.svg";
-
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import { Button } from 'bootstrap';
+import { ThemeProvider } from '../context/themeContext';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -54,6 +57,7 @@ const Dashboard = () => {
 
 
     //Los useState se utilizan para crear variables que se pueden manipular dentro de la aplicación, esot no se almacena en el estado global
+    /////// USESTATE ///////
     const [drawerOpen, setDrawerOpen] = useState(false); // Controla el estado del menú lateral
     const [selectedTab, setSelectedTab] = useState(''); // Maneja las secciones del menú
     const [almacenView, setAlmacenView] = useState(null); // Maneja vistas dentro de Almacenes
@@ -62,13 +66,29 @@ const Dashboard = () => {
     const [clientes, setClientes] = useState([]); // Opciones de clientes
     const [inventoryData, setInventoryData] = useState([]); // Datos del inventario
     const [searchQuery, setSearchQuery] = useState(""); // Consulta de búsqueda
-    const [dailyUpdates, setDailyUpdates] = useState({
+    const [dailyUpdates, setDailyUpdates] = useState({//Actualizaciones diarias
         entradas: 0,
         salidas: 0,
         traslados: 0,
     });
     const [lastUpdateDate, setLastUpdateDate] = useState(new Date().toDateString());
     const [qrModalOpen, setQrModalOpen] = useState(false);
+    const [anchorEl, setAnchorEl] = useState(null);
+    const [theme, setTheme] = useState('dark');
+
+    useEffect(() => {
+        const fetchTheme = async () => {
+            try {
+                const response = await fetch('http://localhost:4000/configuracion/tema');
+                setTheme(response.theme);
+                console.log(response.theme);
+            } catch (error) {
+                console.log(`Error al obtenr el tema ${error}`);
+            }
+        }
+        fetchTheme();
+    });
+    /// FUNCIONES  ////
 
     const addUpdate = (type) => { // Función para actualizar las actualizaciones recientes
         setDailyUpdates((prev) => ({
@@ -81,7 +101,7 @@ const Dashboard = () => {
             setSelectedTab('inventario'); // Cambia a la pestaña "inventario"
         }
     };
-    const [anchorEl, setAnchorEl] = useState(null);
+
     const handleMenuOpen = (event) => {
         setAnchorEl(event.currentTarget);
     };
@@ -101,7 +121,7 @@ const Dashboard = () => {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
+                    "Authorization": `Bearer ${token}`,
                 },
                 body: JSON.stringify(datosUsuario),
             });
@@ -117,14 +137,19 @@ const Dashboard = () => {
         }
     };
     const handleLogout = () => {
-        setIsLoggingOut(true); // Activa la animación de cierre de sesión
-        setTimeout(() => {
-            localStorage.removeItem('token'); // Elimina el token
-            setUser(null); // Limpia la información del usuario
-            setSessionActive(false); // Marca la sesión como inactiva
-            toast.info("Has cerrado sesión."); // Muestra un mensaje de confirmación
-            navigate('/'); // Redirige a la página de inicio de sesión
-        }, 3000); // Retraso de 3 segundos
+        try {
+            setIsLoggingOut(true); // Activa la animación de cierre de sesión
+            setTimeout(() => {
+                localStorage.removeItem('token'); // Elimina el token
+                setUser(null); // Limpia la información del usuario
+                setSessionActive(false); // Marca la sesión como inactiva
+                toast.info("Has cerrado sesión."); // Muestra un mensaje de confirmación
+                navigate('/'); // Redirige a la página de inicio de sesión
+            }, 3000); // Retraso de 3 segundos
+            toast.loading("Cerrando sesión...");
+        } catch (error) {
+            console.error(error);
+        }
     };
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
@@ -308,8 +333,10 @@ const Dashboard = () => {
             }, 2700000); // 1 minuto
 
             return () => clearTimeout(sessionTimer); // Limpiar temporizador al desmontar
+        } if (sessionActive === false) {
+            navigate('/');
         }
-    }, [user, sessionActive]);
+    }, [user, sessionActive, navigate]);
     // Validar el token al montar el componente
     useEffect(() => {// Este efecto se ejecutará cuando se cambie el usuario
         const validateToken = async () => {
@@ -319,14 +346,12 @@ const Dashboard = () => {
                 navigate('/');
                 return;
             }
-
             try {
                 const response = await fetch('http://localhost:4000/usuario', {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
                 });
-
                 if (response.ok) {
                     const data = await response.json();
                     setUser(data); // Establecer usuario
@@ -342,7 +367,6 @@ const Dashboard = () => {
                 setIsLoading(false); // Finalizar carga
             }
         };
-
         validateToken();
     }, [navigate]);
     useEffect(() => {
@@ -387,6 +411,7 @@ const Dashboard = () => {
     useEffect(() => {
         fetchCodigosUbicaciones(); // Carga inicial de las ubicaciones disponibles
     }, []);
+
 
     // Estado para el formulario dinámico
     const [entradaData, setEntradaData] = useState({ //aqui se guarda el estado del formulario dinámico
@@ -538,8 +563,6 @@ const Dashboard = () => {
             toast.error(`Error: ${error.message}`);
         }
     };
-
-
     const handleInputChange = async (e) => {//Esta función se encarga de manejar los cambios en los campos de entrada y salida
         const { name, value } = e.target; // Obtener el nombre y el valor del evento | target es el objeto que contiene todos los datos del evento|name es el nombre del campo y value es su valor
         setEntradaData((prevState) => ({
@@ -756,15 +779,12 @@ const Dashboard = () => {
             toast.error(`Error: ${error.message}`);
         }
     };
-
-
-
-
     const handleTabChange = (tab) => { //Función que cambia el estado del tab
 
         setSelectedTab(tab);
         setAlmacenView(null);
     };
+    //Función para los campos del formulario de Almacenes
     const handleAlmacenViewChange = (view) => {
         setAlmacenView(view);
     };
@@ -821,17 +841,17 @@ const Dashboard = () => {
         );
     };
 
+
+
+    //Renderizacion de formularios.
     const renderContent = () => {//Se controla el estado del tab
         if (!sessionActive) {
             return (
-                <div>
-                    <h2 color='black'>Sesión Expirada</h2>
-                    <p>Por favor, inicia sesión nuevamente.</p>
-                    navigate('/');
-                </div>
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                    <HourglassEmptyIcon></HourglassEmptyIcon>
+                </Box>
             );
         }
-
         switch (selectedTab) {
 
             case 'almacenes':
@@ -861,6 +881,7 @@ const Dashboard = () => {
             case 'inventario':
                 return <RenderInventoryContent inventoryData={inventoryData} ubicaciones={ubicaciones} fetchCodigosUbicaciones={fetchCodigosUbicaciones} />;
             case 'configuracion': //Se renderiza el contenido del tab 'Configuración'
+                // Se pasa el tema como propiedad y la funcion 
                 return <ConfigPage />;
             case 'dashboard': // Se renderiza el contenido del tab 'Dashboard'
             default:
@@ -883,9 +904,9 @@ const Dashboard = () => {
         <>
             {/* Animación de cierre de sesión */}
             {isLoggingOut && (
-                <div className="logout-animation">
+                <div
+                    className="logout-animation">
                     <div className="spinner"></div>
-                    <p>Cerrando sesión...</p>
                 </div>
             )}
 
@@ -937,9 +958,10 @@ const Dashboard = () => {
                                 horizontal: 'right',
                             }}
                             keepMounted
-                            transformOrigin={{
+                            transformOrigin={{//transformOrigin para posicionar el menú en la esquina superior derecha
                                 vertical: 'top',
                                 horizontal: 'right',
+
                             }}
                             open={Boolean(anchorEl)}
                             onClose={handleMenuClose}
@@ -1006,14 +1028,14 @@ const Dashboard = () => {
                         ))}
                     </List>
                 </Box>
-
                 {/* Contenido Principal */}
+
                 <Box
                     component="main"
+                    className="min-h-screen bg-white text-black dark:bg-dark dark:text-white"
                     sx={{
                         flexGrow: 1,
                         padding: 3,
-                        backgroundColor: '#f5f5f5',
                         height: '100vh',
                         display: 'flex',
                         flexDirection: 'column',
@@ -1025,7 +1047,6 @@ const Dashboard = () => {
                     }}
                 >
                     {renderContent()}
-
                 </Box>
             </Box>
         </>
