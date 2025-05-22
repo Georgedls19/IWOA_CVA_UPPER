@@ -1,15 +1,16 @@
 import { createContext, useContext, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
+import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
 import { toast } from 'react-toastify';
 
 const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
-    const [theme, setTheme] = useState(null); // null mientras carga
+    const [theme, setTheme] = useState(null);
+    const location = useLocation();
 
     // useEffect
     useEffect(() => {
-
-
         const fetchTheme = async () => {//Funcion para la que se obtiene el tema del usuario
             try {
                 const token = localStorage.getItem('token');
@@ -60,15 +61,28 @@ export const ThemeProvider = ({ children }) => {
         }
     };
 
-    if (!theme) return <div>Cargando tema...</div>; // <- evita que toda la app quede en blanco
 
-    return (
+    const isLoginRoute = location.pathname === '/';
+
+    if (!theme && !isLoginRoute) return <div>Cargando tema...</div>;
+
+    const muiTheme = createTheme({
+        palette: {
+            mode: theme === 'dark' ? 'dark' : 'light',
+        },
+    });
+
+    const content = (
         <ThemeContext.Provider value={{ theme, applyTheme }}>
             {children}
         </ThemeContext.Provider>
     );
-};
 
+    return isLoginRoute ? content : (
+        <MuiThemeProvider theme={muiTheme}>
+            {content}
+        </MuiThemeProvider>
+    );
+}
 
-export const useTheme = () => useContext(ThemeContext);
-
+export const _useTheme = () => useContext(ThemeContext);

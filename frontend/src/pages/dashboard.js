@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Grid, Card, CardContent, Typography, Tooltip } from '@mui/material';
+import { Paper, Box, Grid, Card, CardContent, Typography, Tooltip } from '@mui/material';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip as ChartTooltip, Legend } from 'chart.js';
 import InfoIcon from '@mui/icons-material/Info';
+import { theme } from '../context/themeContext';
+import { useTheme } from '@mui/material/styles';
+import { dark } from '@mui/material/styles/createPalette';
 
 // Registrar componentes de gráficos
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, ChartTooltip, Legend);
@@ -11,8 +14,10 @@ const DashboardCards = ({ cards, onCardClick }) => {
     const [barData, setBarData] = useState(null); // Datos de la gráfica
     const [ubicaciones, setUbicaciones] = useState([]); // Datos de las ubicaciones
     const [showMatrix, setShowMatrix] = useState(false); // Estado para mostrar u ocultar la matriz
+    const theme = useTheme();
+    const isDark = theme.palette.mode === 'dark'; // Usamos el tema para determinar si el modo es oscuro o claro
 
-    useEffect(() => {
+    useEffect(() => {// Usamos useEffect para realizar acciones cuando se renderice la página
         const fetchChartData = async () => {
             try {
                 const response = await fetch('http://localhost:4000/entradas-salidas');
@@ -54,7 +59,7 @@ const DashboardCards = ({ cards, onCardClick }) => {
         <Box
             sx={{
                 padding: '2rem',
-                backgroundColor: '#f5f5f5',
+                // backgroundColor: theme.palette.background.isDark,
                 borderRadius: '10px',
                 boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
                 margin: '1rem auto',
@@ -62,17 +67,20 @@ const DashboardCards = ({ cards, onCardClick }) => {
                 maxWidth: '1200px',
             }}
         >
+
             <Box>
                 <Typography
                     variant="h5"
                     gutterBottom
                     sx={{
-                        color: '#2c3e50', // Color elegante y profesional
+                        // color: '#2c3e50', // Color elegante y profesional
+                        // background: 'black', // Gradiente suave
+                        background: isDark ? 'darkgray' : 'black',
+                        color: isDark ? '#ffffff' : '#2c3e50',
                         fontWeight: 'bold', // Texto más prominente
                         letterSpacing: '0.2em', // Espaciado para darle más estilo
                         textTransform: 'uppercase', // Todo en mayúsculas para un encabezado llamativo
-                        textShadow: '2px 2px 5px rgba(0, 0, 0, 0.2)', // Sombra suave para mayor impacto                    
-                        background: 'black', // Gradiente suave
+                        textShadow: '2px 2px 5px rgba(0, 0, 0, 0.2)', // Sombra suave para mayor impacto                                        
                         WebkitBackgroundClip: 'text', // Usamos el gradiente como color del texto
                         WebkitTextFillColor: 'transparent', // Hacemos que el fondo rellene el texto
                         marginLeft: '1rem',
@@ -96,12 +104,15 @@ const DashboardCards = ({ cards, onCardClick }) => {
                                 justifyContent: 'center',
                                 alignItems: 'center',
                                 textAlign: 'center',
-                                backgroundColor: '#f5f5f5',
+                                backgroundColor: theme.palette.background.paper,
+                                color: theme.palette.text.primary,
                                 boxShadow: 3,
                                 transition: 'transform 0.2s',
                                 '&:hover': {
                                     transform: 'scale(1.05)',
-                                    backgroundColor: '#e3f2fd',
+                                    backgroundColor: isDark
+                                        ? theme.palette.grey[800]
+                                        : theme.palette.grey[100],
                                 },
                             }}
                         >
@@ -118,7 +129,12 @@ const DashboardCards = ({ cards, onCardClick }) => {
 
             {/* Sección de Gráfica */}
             <Box mt={4}>
-                <Typography variant="h5" color="#2c3e50" gutterBottom>
+                <Typography
+                    sx={{
+                        color: isDark ? '#ffffff' : '#2c3e50', // Color elegante y profesional
+                    }}
+                    variant="h5"
+                    utterBottom>
                     Comparación de Entradas y Salidas
                 </Typography>
                 {barData ? (
@@ -129,6 +145,7 @@ const DashboardCards = ({ cards, onCardClick }) => {
                             plugins: {
                                 legend: { position: 'top' },
                                 title: { display: true, text: 'Entradas vs Salidas Mensuales' },
+
                             },
                             scales: { y: { beginAtZero: true } },
                         }}
@@ -140,7 +157,12 @@ const DashboardCards = ({ cards, onCardClick }) => {
 
             {/* Matriz de Ubicaciones */}
             <Box mt={4}>
-                <Typography variant="h5" color="#2c3e50" gutterBottom>
+                <Typography
+                    sx={{
+                        color: isDark ? '#ffffff' : '#2c3e50',
+                    }}
+                    variant="h5"
+                    gutterBottom>
                     Ubicaciones Disponibles
                 </Typography>
                 <Box
@@ -155,7 +177,9 @@ const DashboardCards = ({ cards, onCardClick }) => {
                     <Tooltip title="Muestra las ubicaciones disponibles y ocupadas">
                         <InfoIcon sx={{ color: '#5499c7' }} />
                     </Tooltip>
-                    <Typography color="#2c3e50">
+                    <Typography
+                        sx={{ color: isDark ? '#ffffff' : '#2c3e50', }}
+                    >
                         Las casillas verdes están disponibles. Las rojas están ocupadas.
                     </Typography>
                 </Box>
@@ -163,8 +187,13 @@ const DashboardCards = ({ cards, onCardClick }) => {
                     <Tooltip title={showMatrix ? 'Ocultar matriz' : 'Mostrar matriz'}>
                         <Card
                             sx={{
-                                backgroundColor: '#5499c7',
-                                color: 'white',
+                                backgroundColor: isDark ? 'darkgray' : '#1976d2',
+                                color: isDark ? 'black' : 'white',
+                                ":hover"
+                                    : {
+                                    backgroundColor: isDark ? '#5499c7' : '#265980',
+                                    color: isDark ? 'white' : '#ffffff',
+                                },
                                 padding: '1rem',
                                 textAlign: 'center',
                                 borderRadius: '10px',

@@ -1,5 +1,11 @@
-const { config } = require('dotenv');/*cargas de paquete para llamar a variable de Entorno*/
-config();/*cargas de paquete para llamar a variable de Entorno*/
+const path = require('path');
+const { config } = require('dotenv');
+
+config({
+    path: path.resolve(__dirname, '../../.env'), // Ajusta al .env en raíz
+});
+
+
 
 // console.log(process.env.HELLO);// se llama la variable de entorno */
 // console.log('DB_USER:', process.env.DB_USER);

@@ -651,7 +651,7 @@ const getUsuarioAutenticado = async (req, res) => {
     try {
         const { id } = req.user; // Extraer el ID del usuario del token decodificado
         const result = await pool.query(
-            'SELECT id, correo, nombre FROM usuarios WHERE id = $1',
+            'SELECT id, correo, nombre, rol FROM usuarios WHERE id = $1',
             [id]
         );
         if (result.rows.length === 0) {

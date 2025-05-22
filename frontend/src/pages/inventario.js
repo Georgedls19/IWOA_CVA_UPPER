@@ -18,11 +18,12 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
-    IconButton,
+    IconButton, o
 } from '@mui/material';
 import { toast } from 'react-toastify';
 import DeleteIcon from '@mui/icons-material/Delete';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import { useTheme } from '@mui/material/styles';
 const Inventario = (fetchCodigosUbicaciones) => {
     const [tabla, setTabla] = useState('Stock');
     const [tipoMovimiento, setTipoMovimiento] = useState('');
@@ -31,8 +32,10 @@ const Inventario = (fetchCodigosUbicaciones) => {
     const [selectedRows, setSelectedRows] = useState([]);
     const [confirmOpen, setConfirmOpen] = useState(false); // Controla el diálogo de confirmación
     const [rowsWithStock, setRowsWithStock] = useState([]); // Filas con stock mayor a cero
-    const [currentPage, setCurrentPage] = useState(1); // Página actual
+    const [currentPage, setCurrentPage] = useState(1); // Página actusal
     const rowsPerPage = 5; // Cantidad de filas por página
+    const theme = useTheme();
+    const isDark = theme.palette.mode === 'dark';
 
     const obtenerDatos = async () => {
         try {
@@ -297,12 +300,12 @@ const Inventario = (fetchCodigosUbicaciones) => {
         >
             <Box
                 sx={{
-                    color: '#2c3e50', // Color elegante y profesional
+                    bgcolor: isDark ? 'darkgray' : 'black',
+                    color: isDark ? '#ffffff' : '#2c3e50', // Color elegante y profesional                        
                     fontWeight: 'bold', // Texto más prominente
                     letterSpacing: '0.2em', // Espaciado para darle más estilo
                     textTransform: 'uppercase', // Todo en mayúsculas para un encabezado llamativo
-                    textShadow: '2px 2px 5px rgba(0, 0, 0, 0.2)', // Sombra suave para mayor impacto
-                    background: 'black', // Gradiente suave
+                    textShadow: '2px 2px 5px rgba(0, 0, 0, 0.2)', // Sombra suave para mayor impacto                    
                     WebkitBackgroundClip: 'text', // Usamos el gradiente como color del texto
                     WebkitTextFillColor: 'transparent', // Hacemos que el fondo rellene el texto
                     marginLeft: '1rem',

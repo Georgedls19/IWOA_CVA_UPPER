@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { es as esLocale } from 'date-fns/locale';
+import { bg, es as esLocale } from 'date-fns/locale';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
@@ -20,19 +20,18 @@ import MobileScreenShareIcon from '@mui/icons-material/MobileScreenShare';
 import QRCode from 'qrcode.react';
 
 
-
-
 // Define la función y exporta
 const renderAlmacenContent = (
     almacenView,
     state,
     handlers,
-    utils) => {
+    utils,
+    theme) => {
     const { entradaData, salidaData, trasladoData, areas, clientes } = state;
-    const { handleFormSubmit, handleSalidaFormSubmit, handleTrasladoFormSubmit, handleInputChange, handleSalidaInputChange, handleTrasladoInputChange, handleAlmacenViewChange } = handlers;
-
+    const { handleFormSubmit, handleSalidaFormSubmit, handleCodigoLoteBlur, handleTrasladoFormSubmit, handleInputChange, handleSalidaInputChange, handleTrasladoInputChange, handleAlmacenViewChange } = handlers;
     const { setEntradaData, fieldEntradas, ubicaciones, setSalidaData } = utils;
-    // Estado para mostrar/ocultar el modal
+    const isDark = theme.palette.mode === 'dark';
+
 
     // Mismo código de renderAlmacenContent aquí, pero usa las props proporcionadas
     if (almacenView === 'entradas') {
@@ -49,7 +48,12 @@ const renderAlmacenContent = (
                     width: '30%',
                 }}
             >
-                <Typography variant="h4" color="#081b29" gutterBottom>
+                <Typography
+                    variant="h4"
+                    sx={{
+                        color: isDark ? '#ffffff' : '#2c3e50',
+                    }}
+                    gutterBottom>
                     Entradas
                 </Typography>
                 <Typography variant="body1" gutterBottom>
@@ -198,7 +202,11 @@ const renderAlmacenContent = (
                     width: '40%',
                 }}
             >
-                <Typography variant="h4" color="#081b29" gutterBottom>
+                <Typography variant="h4"
+                    sx={{
+                        color: isDark ? '#ffffff' : '#2c3e50',
+                    }}
+                    gutterBottom>
                     Salidas
                 </Typography>
                 <Typography variant="body1" gutterBottom>
@@ -306,7 +314,12 @@ const renderAlmacenContent = (
                     width: '25%',
                 }}
             >
-                <Typography variant="h4" color="#081b29" gutterBottom>
+                <Typography
+                    variant="h4"
+                    sx={{
+                        color: isDark ? '#ffffff' : '#2c3e50',
+                    }}
+                    gutterBottom>
                     Traslados
                 </Typography>
                 <Typography variant="body1" gutterBottom>
@@ -322,6 +335,7 @@ const renderAlmacenContent = (
                                 name="codigo_lote"
                                 value={trasladoData.codigo_lote}
                                 onChange={handleTrasladoInputChange}
+                                onBlur={handleCodigoLoteBlur}
                                 required
                             />
                         </Grid>
@@ -413,12 +427,12 @@ const renderAlmacenContent = (
                 variant="h5"
                 gutterBottom
                 sx={{
-                    color: '#2c3e50', // Color elegante y profesional
+                    background: isDark ? 'darkgray' : 'black',
+                    color: isDark ? '#ffffff' : '#2c3e50',
                     fontWeight: 'bold', // Texto más prominente
                     letterSpacing: '0.2em', // Espaciado para darle más estilo
                     textTransform: 'uppercase', // Todo en mayúsculas para un encabezado llamativo
-                    textShadow: '2px 2px 5px rgba(0, 0, 0, 0.2)', // Sombra suave para mayor impacto                    
-                    background: 'black', // Gradiente suave
+                    textShadow: '2px 2px 5px rgba(0, 0, 0, 0.2)', // Sombra suave para mayor impacto                                        
                     WebkitBackgroundClip: 'text', // Usamos el gradiente como color del texto
                     WebkitTextFillColor: 'transparent', // Hacemos que el fondo rellene el texto
                     marginLeft: '1rem',
@@ -431,30 +445,31 @@ const renderAlmacenContent = (
             <Typography variant="body1" gutterBottom>
                 Selecciona una opción para continuar:
             </Typography>
-            <Grid container spacing={3} justifyContent="center" sx={{ marginTop: 4 }}>
+            <Grid container spacing={3} justifyContent="center"
+                sx={{ marginTop: 4 }}>
                 {[
                     {
-                        title: 'Entradas',
-                        description: 'Registrar nuevas entradas',
-                        icon: <AddCircleOutlineIcon sx={{ fontSize: 40, color: '#1976d2' }} />,
+                        title: <Typography sx={{ color: "black" }}>Entradas</Typography>,
+                        description: <Typography sx={{ color: "black" }}>Registrar nuevas entradas</Typography>,
+                        icon: <AddCircleOutlineIcon sx={{ fontSize: 40, color: isDark ? 'black' : '#1976d2' }} />,
                         action: () => handleAlmacenViewChange('entradas'),
                     },
                     {
-                        title: 'Salidas',
-                        description: 'Registrar salidas de productos',
-                        icon: <ExitToAppIcon sx={{ fontSize: 40, color: '#d32f2f' }} />,
+                        title: <Typography sx={{ color: "black" }}>Salidas</Typography>,
+                        description: <Typography sx={{ color: "black" }}>Registrar salidas de productos</Typography>,
+                        icon: <ExitToAppIcon sx={{ fontSize: 40, color: isDark ? 'black' : '#d32f2f' }} />,
                         action: () => handleAlmacenViewChange('salidas'),
                     },
                     {
-                        title: 'Traslados',
-                        description: 'Gestionar traslados entre almacenes',
-                        icon: <CompareArrowsIcon sx={{ fontSize: 40, color: '#388e3c' }} />,
+                        title: <Typography sx={{ color: "black" }}>Traslados</Typography>,
+                        description: <Typography sx={{ color: "black" }}>Gestionar traslados entre almacenes</Typography>,
+                        icon: <CompareArrowsIcon sx={{ fontSize: 40, color: isDark ? 'black' : '#388e3c' }} />,
                         action: () => handleAlmacenViewChange('traslados'),
                     },
                     {
-                        title: 'Móvil',
-                        description: 'Acceso desde un dispositivo móvil',
-                        icon: <MobileScreenShareIcon sx={{ fontSize: 40, color: '#ffa726' }} />,
+                        title: <Typography sx={{ color: "black" }}>Movil</Typography>,
+                        description: <Typography sx={{ color: "black" }}>Acceso desde un dispositivo móvil</Typography>,
+                        icon: <MobileScreenShareIcon sx={{ fontSize: 40, color: isDark ? 'black' : '#ffa726' }} />,
                         action: () => alert('Funcionalidad móvil seleccionada'),
                     },
                 ].map((item, index) => (
@@ -469,7 +484,7 @@ const renderAlmacenContent = (
                                 justifyContent: 'center',
                                 alignItems: 'center',
                                 textAlign: 'center',
-                                backgroundColor: '#f5f5f5',
+                                bgcolor: isDark ? 'darkgray' : 'white',
                                 boxShadow: 3,
                                 transition: 'transform 0.2s',
                                 '&:hover': {

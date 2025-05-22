@@ -45,6 +45,7 @@ import Logo from "../assets/logo.svg";
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import { Button } from 'bootstrap';
 import { ThemeProvider } from '../context/themeContext';
+import { useTheme } from '@mui/material/styles';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -74,22 +75,10 @@ const Dashboard = () => {
     const [lastUpdateDate, setLastUpdateDate] = useState(new Date().toDateString());
     const [qrModalOpen, setQrModalOpen] = useState(false);
     const [anchorEl, setAnchorEl] = useState(null);
-    const [theme, setTheme] = useState('dark');
+    const theme = useTheme();
+    const isDark = theme.palette.mode === 'dark';
 
-    useEffect(() => {
-        const fetchTheme = async () => {
-            try {
-                const response = await fetch('http://localhost:4000/configuracion/tema');
-                setTheme(response.theme);
-                console.log(response.theme);
-            } catch (error) {
-                console.log(`Error al obtenr el tema ${error}`);
-            }
-        }
-        fetchTheme();
-    });
     /// FUNCIONES  ////
-
     const addUpdate = (type) => { // Función para actualizar las actualizaciones recientes
         setDailyUpdates((prev) => ({
             ...prev,
@@ -101,16 +90,15 @@ const Dashboard = () => {
             setSelectedTab('inventario'); // Cambia a la pestaña "inventario"
         }
     };
-
     const handleMenuOpen = (event) => {
         setAnchorEl(event.currentTarget);
     };
     const handleMenuClose = () => {
         setAnchorEl(null);
     };
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(null);//Estado que almacena el usuario actual
     const [sessionActive, setSessionActive] = useState(true);
-    const actualizarPerfil = async (datosUsuario) => {
+    const actualizarPerfil = async (datosUsuario) => {//    metopdo actualizar perfil del usuario logeado
         try {
             const token = localStorage.getItem('token');
             if (!token) {
@@ -175,8 +163,7 @@ const Dashboard = () => {
             console.error('Error al actualizar ubicación:', error);
         }
     };
-
-    //Funciones     
+    //UseEffect
     useEffect(() => {//Este useEffect se encarga de obtener las opciones de ubicaciones, áreas y clientes
         const fetchData = async () => {//Este fetData se encarga de obtener las opciones de ubicaciones, áreas y clientes de la API
             try {
@@ -383,7 +370,6 @@ const Dashboard = () => {
         };
         fetchCodigosUbicaciones();
     }, []);
-
     // Función para manejar clics fuera del menú lateral
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -397,7 +383,6 @@ const Dashboard = () => {
         };
     }, []);
 
-
     const fetchCodigosUbicaciones = async () => {
         try {
             const response = await fetch('http://localhost:4000/ubicaciones/codigos-disponibles');
@@ -407,12 +392,9 @@ const Dashboard = () => {
             console.error('Error al cargar las ubicaciones disponibles:', error.message);
         }
     };
-
     useEffect(() => {
         fetchCodigosUbicaciones(); // Carga inicial de las ubicaciones disponibles
     }, []);
-
-
     // Estado para el formulario dinámico
     const [entradaData, setEntradaData] = useState({ //aqui se guarda el estado del formulario dinámico
         codigo_lote: "",
@@ -522,6 +504,41 @@ const Dashboard = () => {
             }
         }
     };
+
+    const handleCodigoLoteBlur = async (e) => {
+        const value = e.target.value.trim();
+
+        if (value.length < 3) return; // No hacer nada si es muy corto
+
+        try {
+            const response = await fetch(`http://localhost:4000/lotes?codigo_lote=${value}`);
+            if (response.ok) {
+                const loteData = await response.json();
+                setSalidaData((prevState) => ({
+                    ...prevState,
+                    Cliente: loteData.cliente || "",
+                }));
+                console.log(`Cliente asociado: ${loteData.cliente}`);
+            } else {
+                setSalidaData((prevState) => ({
+                    ...prevState,
+                    Cliente: "",
+                }));
+                toast.error('No se encontró información para el código de lote.');
+            }
+        } catch (error) {
+            toast.error(`Error: ${error.message}`, {
+                position: "top-right",
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+            });
+        }
+    };
+
     const handleSalidaFormSubmit = async (e) => {
         e.preventDefault();
         try {
@@ -681,7 +698,6 @@ const Dashboard = () => {
             });
         }
     };
-
     const handleTrasladoInputChange = async (e) => {
         const { name, value } = e.target;
 
@@ -840,9 +856,6 @@ const Dashboard = () => {
             />
         );
     };
-
-
-
     //Renderizacion de formularios.
     const renderContent = () => {//Se controla el estado del tab
         if (!sessionActive) {
@@ -864,6 +877,7 @@ const Dashboard = () => {
                         handleTrasladoFormSubmit,
                         handleInputChange,
                         handleSalidaInputChange,
+                        handleCodigoLoteBlur,
                         handleTrasladoInputChange,
                         handleAlmacenViewChange,
                     },
@@ -874,7 +888,8 @@ const Dashboard = () => {
                         ubicaciones,    // Verifica que esta lista esté definida
                         setSalidaData,  // Incluye también setSalidaData si se usa
                         actualizarUbicacion
-                    }
+                    },
+                    theme
                 );
             case 'perfil': //Se renderiza el contenido del tab 'Perfil'
                 return <UserProfile user={user} actualizarPerfil={actualizarPerfil} />;
@@ -882,14 +897,13 @@ const Dashboard = () => {
                 return <RenderInventoryContent inventoryData={inventoryData} ubicaciones={ubicaciones} fetchCodigosUbicaciones={fetchCodigosUbicaciones} />;
             case 'configuracion': //Se renderiza el contenido del tab 'Configuración'
                 // Se pasa el tema como propiedad y la funcion 
-                return <ConfigPage />;
+                return <ConfigPage user={user} />;
             case 'dashboard': // Se renderiza el contenido del tab 'Dashboard'
             default:
                 return <DashboardCards cards={cards} onCardClick={handleCardClick} />;
 
         }
     };
-
     // Mostrar cargando mientras se valida el token
     if (isLoading) {
         return (
@@ -898,6 +912,7 @@ const Dashboard = () => {
             </div>
         );
     }
+
 
     //En este return se renderiza el componente principal
     return (
@@ -976,9 +991,10 @@ const Dashboard = () => {
 
                 {/* Menú Lateral */}
                 <Box
-
                     ref={menuRef}
                     sx={{
+                        bgcolor: isDark ? 'darkgray' : 'white',
+                        color: theme.palette.text.primary,
                         width: drawerOpen ? 240 : 60,
                         flexShrink: 0,
                         height: '100vh',
@@ -986,7 +1002,6 @@ const Dashboard = () => {
                         position: 'fixed',
                         top: 56,
                         left: 0,
-                        bgcolor: '#f5f5f5',
                         boxShadow: 3,
                     }}
                 >
@@ -1003,7 +1018,7 @@ const Dashboard = () => {
                                     onClick={() => handleTabChange(item.text.toLowerCase())}
                                     key={index}
                                     sx={{
-                                        bgcolor: selectedTab === item.text.toLowerCase() ? '#5499c7' : 'white',
+                                        bgcolor: isDark ? 'darkgray' : 'white',
                                         '&:hover': { bgcolor: '#5499c7' },
                                         transition: 'background-color 0.3s',
                                         justifyContent: drawerOpen ? 'initial' : 'center',
@@ -1015,6 +1030,8 @@ const Dashboard = () => {
                                         sx={{
                                             minWidth: drawerOpen ? '40px' : 'unset',
                                             justifyContent: 'center',
+                                            bgcolor: theme.palette.background.isDark ? 'black' : '',
+                                            color: theme.palette.text.isDark ? '#ffffff' : " #000000",
                                         }}
                                     >
                                         {item.icon}
@@ -1032,8 +1049,9 @@ const Dashboard = () => {
 
                 <Box
                     component="main"
-                    className="min-h-screen bg-white text-black dark:bg-dark dark:text-white"
+                    // className="min-h-screen bg-white text-black dark:bg-dark dark:text-white"
                     sx={{
+                        backgroundColor: theme.palette.background.dark,
                         flexGrow: 1,
                         padding: 3,
                         height: '100vh',

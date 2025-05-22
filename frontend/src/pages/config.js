@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import {
     Box,
@@ -25,10 +25,14 @@ import {
 } from '@mui/material';
 import { toast } from 'react-toastify';
 import CloseIcon from '@mui/icons-material/Close';
-import { useTheme } from '../context/themeContext';
+import { _useTheme } from '../context/themeContext';
+import { useTheme } from '@mui/material/styles';
 
-const ConfigPage = () => {
 
+
+const ConfigPage = ({ user }) => {
+    const theme = useTheme();
+    const isDark = theme.palette.mode === 'dark';
     // REACT STATE HOOKS
     const [settings, setSettings] = useState({
         // theme: 'light',
@@ -46,10 +50,16 @@ const ConfigPage = () => {
     }); // Estado para el nuevo usuario
     const [showCreateUserForm, setShowCreateUserForm] = useState(false); // Estado para mostrar/ocultar el formulario
     const [editUser, setEditUser] = useState(null); // Estado para el usuario que se edita
-    const { theme, applyTheme } = useTheme(); // Ete contiene el tema actual y la función para aplicar el tema
+    const { _theme, applyTheme } = _useTheme(); // Ete contiene el tema actual y la función para aplicar el tema
     const [selectedTheme, setSelectedTheme] = useState(theme); // Aqui se almacena el tema seleccionado
-    //REACT USEEFFECTS 
 
+    //REACT USEEFFECTS 
+    useEffect(() => {
+        if (openUserModal) {
+            fetchUsers();
+        }
+
+    }, [openUserModal]);
 
     // REACT FUNCTIONS
     const handleSettingChange = (key, value) => {//En esta función se actualiza el estado de la configuración
@@ -114,7 +124,6 @@ const ConfigPage = () => {
 
             toast.success('Usuario actualizado con éxito');
             setEditUser(null);
-            fetchUsers();
         } catch (error) {
             console.error('Error al editar usuario:', error);
             toast.error(error.message);
@@ -138,10 +147,18 @@ const ConfigPage = () => {
             toast.error(error.message);
         }
     };
+    const getUserRol = async (id) => {
+        // obtener rol de usuario
+        const rol = await getUserRol(user.rol);
+        console.log(rol);
+    }
+
+
     const handleThemeChange = async (e) => {
         const newTheme = e.target.value;
         applyTheme(newTheme);
     }
+
     return (
         <Box
             sx={{
@@ -155,17 +172,18 @@ const ConfigPage = () => {
                 variant="h5"
                 gutterBottom
                 sx={{
-                    color: '#2c3e50', // Color elegante y profesional
+                    bgcolor: isDark ? 'darkgray' : 'black',
+                    color: isDark ? '#ffffff' : '#2c3e50', // Color elegante y profesional                
                     fontWeight: 'bold', // Texto más prominente
                     letterSpacing: '0.2em', // Espaciado para darle más estilo
                     textTransform: 'uppercase', // Todo en mayúsculas para un encabezado llamativo
-                    textShadow: '2px 2px 5px rgba(0, 0, 0, 0.2)', // Sombra suave para mayor impacto                    
-                    background: 'black', // Gradiente suave
+                    textShadow: '2px 2px 5px rgba(0, 0, 0, 0.2)', // Sombra suave para mayor impacto                                        
                     WebkitBackgroundClip: 'text', // Usamos el gradiente como color del texto
                     WebkitTextFillColor: 'transparent', // Hacemos que el fondo rellene el texto
                     marginLeft: '1rem',
                     marginBottom: '2rem',
                 }}
+
             >
                 Configuración
             </Typography>
@@ -222,7 +240,16 @@ const ConfigPage = () => {
                             </Box>
                         </CardContent>
                         <CardActions>
-                            <Button variant="contained" color="primary">
+                            <Button variant="contained"
+                                sx={{
+                                    backgroundColor: isDark ? 'darkgray' : '#1976d2',
+                                    color: isDark ? 'black' : 'white',
+                                    ":hover"
+                                        : {
+                                        backgroundColor: isDark ? '#5499c7' : '#265980',
+                                        color: isDark ? 'white' : '#ffffff',
+                                    }
+                                }}>
                                 Guardar Cambios
                             </Button>
                         </CardActions>
@@ -239,7 +266,7 @@ const ConfigPage = () => {
                                 <TextField //Tema
                                     select
                                     label="Tema"
-                                    value={theme}
+                                    value={_theme}
                                     onChange={(e) => setSelectedTheme(e.target.value)}//En esta parte se aplica el tema con el valor del estado 
                                     fullWidth
                                 >
@@ -250,8 +277,15 @@ const ConfigPage = () => {
                         </CardContent>
                         <CardActions>
                             <Button
-                                variant="contained"
-                                color="primary"
+                                sx={{
+                                    backgroundColor: isDark ? 'darkgray' : '#1976d2',
+                                    color: isDark ? 'black' : 'white',
+                                    ":hover"
+                                        : {
+                                        backgroundColor: isDark ? '#5499c7' : '#265980',
+                                        color: isDark ? 'white' : '#ffffff',
+                                    }
+                                }}
                                 onClick={() => applyTheme(selectedTheme)}//En esta parte se aplica el tema con el valor del estado
                             >
                                 Aplicar
@@ -259,17 +293,26 @@ const ConfigPage = () => {
                         </CardActions>
                     </Card>
                 </Grid>
-
                 {/* Gestión de Usuarios */}
                 <Grid item xs={12}>
                     <Card>
                         <CardContent>
                             <Typography variant="h6">Gestión de Usuarios</Typography>
-                            <Box mt={2}>
+                            <Box mt={2}
+                            >
                                 <Button
                                     variant="contained"
                                     color="primary"
                                     onClick={() => setOpenUserModal(true)}
+                                    sx={{
+                                        backgroundColor: isDark ? 'darkgray' : '#1976d2',
+                                        color: isDark ? 'black' : 'white',
+                                        ":hover"
+                                            : {
+                                            backgroundColor: isDark ? '#5499c7' : '#265980',
+                                            color: isDark ? 'white' : '#ffffff',
+                                        }
+                                    }}
                                 >
                                     Gestionar Usuarios
                                 </Button>
@@ -312,44 +355,53 @@ const ConfigPage = () => {
                         Cerrar
                     </Button>
                     { /* Aquí se mostrará la tabla de usuarios */}
-                    <TableContainer component={Paper}>
+                    {/* <ThemeProvider theme={scrollbar}> */}
+                    <TableContainer component={Paper}
+                        sx={{
+                            maxHeight: 200, // o la altura que quieras
+                            overflowY: 'auto'
+                        }}>
                         <Table>
                             <TableHead>
                                 <TableRow>
                                     <TableCell>Nombre</TableCell>
                                     <TableCell>Correo</TableCell>
                                     <TableCell>Rol</TableCell>
-                                    <TableCell>Acciones</TableCell>
+                                    {user?.rol === 'admin' && <TableCell>Acciones</TableCell>}
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {users.map((user) => (
-                                    <TableRow key={user.id}>
-                                        <TableCell>{user.nombre}</TableCell>
-                                        <TableCell>{user.correo}</TableCell>
-                                        <TableCell>{user.rol}</TableCell>
-                                        <TableCell>
-                                            <Button
-                                                variant="outlined"
-                                                color="primary"
-                                                sx={{ mr: 1 }}
-                                                onClick={() => setEditUser(user)}
-                                            >
-                                                Editar
-                                            </Button>
-                                            <Button
-                                                variant="outlined"
-                                                color="error"
-                                                onClick={() => handleDeleteUser(user.id)}
-                                            >
-                                                Eliminar
-                                            </Button>
-                                        </TableCell>
+                                {users.map((userRow) => (
+                                    <TableRow key={userRow.id}>
+                                        <TableCell>{userRow.nombre}</TableCell>
+                                        <TableCell>{userRow.correo}</TableCell>
+                                        <TableCell>{userRow.rol}</TableCell>
+                                        {user?.rol === 'admin' && (
+                                            <TableCell>
+                                                <Button
+                                                    variant="outlined"
+                                                    color="primary"
+                                                    sx={{ mr: 1 }}
+                                                    onClick={() => setEditUser(userRow)}
+                                                >
+                                                    Editar
+                                                </Button>
+                                                <Button
+                                                    variant="outlined"
+                                                    color="error"
+                                                    onClick={() => handleDeleteUser(userRow.id)}
+                                                >
+                                                    Eliminar
+                                                </Button>
+                                            </TableCell>
+                                        )}
                                     </TableRow>
                                 ))}
                             </TableBody>
+
                         </Table>
                     </TableContainer>
+                    {/* </ThemeProvider> */}
                     {editUser && (
                         <Box component="form" sx={{ mt: 3, position: 'relative', border: '1px solid #ccc', borderRadius: '8px', padding: 2 }}>
                             <IconButton
@@ -396,14 +448,15 @@ const ConfigPage = () => {
 
 
                     { /* Aqui se crear el formulario para crear nuevos usuarios */}
+
                     <Box mt={3}>
-                        <Button
+                        {user?.rol === "admin" ? <Button
                             variant="outlined"
                             color="primary"
                             onClick={() => setShowCreateUserForm((prev) => !prev)}
                         >
                             {showCreateUserForm ? 'Ocultar Formulario' : 'Crear Nuevo Usuario'}
-                        </Button>
+                        </Button> : null}
                     </Box>
                     {showCreateUserForm && (
                         <Box component="form" sx={{ mt: 2 }}>
@@ -452,6 +505,7 @@ const ConfigPage = () => {
                                     variant="contained"
                                     color="primary"
                                     onClick={handleAddUser}
+
                                 >
                                     Crear Usuario
                                 </Button>
